@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/routes/app_routes.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../projects/data/repositories/task_repository.dart';
 import '../../../projects/domain/models/project.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
@@ -39,6 +40,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     final user = FirebaseAuth.instance.currentUser;
 
@@ -46,7 +48,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
 
     final firstName = displayName != null && displayName.isNotEmpty
         ? displayName.split(' ').first
-        : 'пользователь';
+        : l10n.fullName;
 
     final projectsProvider = context.watch<ProjectsProvider>();
 
@@ -82,7 +84,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
 
                   const SizedBox(height: 28),
 
-                  _buildSectionHeader(context, title: 'Быстрые действия'),
+                  _buildSectionHeader(context, title: l10n.quickActions),
 
                   const SizedBox(height: 12),
 
@@ -100,9 +102,14 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
+  // ============================================================
+  // HEADER
+  // ============================================================
+
   Widget _buildHeader(BuildContext context, String firstName) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -112,7 +119,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Добро пожаловать 👋',
+                '${l10n.welcome} 👋',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
@@ -121,7 +128,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
               const SizedBox(height: 4),
 
               Text(
-                'Привет, $firstName',
+                l10n.helloUser(firstName),
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: colors.onSurface,
                   fontWeight: FontWeight.w700,
@@ -132,7 +139,9 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
               const SizedBox(height: 6),
 
               Text(
-                'Вот что происходит с вашими проектами.',
+                l10n.projectsDescription,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
@@ -160,46 +169,51 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
+  // ============================================================
+  // OVERVIEW
+  // ============================================================
+
   Widget _buildOverview(
     BuildContext context,
     List<Project> projects,
     TaskStats stats,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     if (projects.isEmpty) {
       return _buildEmptyCard(
         context,
         icon: Icons.folder_open_outlined,
-        title: 'Нет созданных проектов',
-        subtitle: 'Создайте первый проект, чтобы начать работу.',
+        title: l10n.noProjectsYet,
+        subtitle: l10n.createFirstProjectDescription,
       );
     }
 
     final cards = <Widget>[
       _StatCard(
-        title: 'Проекты',
+        title: l10n.projects,
         value: projects.length.toString(),
         icon: Icons.folder_outlined,
         iconType: _StatCardColor.primary,
       ),
 
       _StatCard(
-        title: 'Задачи',
+        title: l10n.tasks,
         value: stats.total.toString(),
         icon: Icons.checklist_rounded,
         iconType: _StatCardColor.warning,
       ),
 
       _StatCard(
-        title: 'Выполнено',
+        title: l10n.completed,
         value: stats.completed.toString(),
         icon: Icons.check_circle_outline_rounded,
         iconType: _StatCardColor.success,
       ),
 
       _StatCard(
-        title: 'В процессе',
+        title: l10n.inProgress,
         value: stats.inProgress.toString(),
         icon: Icons.schedule_rounded,
         iconType: _StatCardColor.primary,
@@ -210,7 +224,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Обзор',
+          l10n.overview,
           style: theme.textTheme.titleLarge?.copyWith(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.w700,
@@ -237,16 +251,22 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
+  // ============================================================
+  // RECENT PROJECTS
+  // ============================================================
+
   Widget _buildRecentProjectsSection(
     BuildContext context,
     List<Project> projects,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (projects.isEmpty) {
       return _buildEmptyCard(
         context,
         icon: Icons.history_rounded,
-        title: 'Пока нет недавних проектов',
-        subtitle: 'Здесь появятся проекты, с которыми вы работаете.',
+        title: l10n.noRecentProjectsTitle,
+        subtitle: l10n.noRecentProjectsSubtitle,
       );
     }
 
@@ -257,8 +277,8 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       children: [
         _buildSectionHeader(
           context,
-          title: 'Недавние проекты',
-          actionText: 'Все',
+          title: l10n.recentProjects,
+          actionText: l10n.all,
           onActionTap: widget.onViewAllProjects,
         ),
 
@@ -282,6 +302,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // EMPTY CARD
+  // ============================================================
 
   Widget _buildEmptyCard(
     BuildContext context, {
@@ -337,16 +361,21 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
+  // ============================================================
+  // QUICK ACTIONS
+  // ============================================================
+
   Widget _buildQuickActions(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       children: [
         Expanded(
           child: _QuickActionCard(
             icon: Icons.add_rounded,
-            title: 'Новый проект',
-            subtitle: 'Создать',
+            title: l10n.newProject,
+            subtitle: l10n.create,
             color: colors.primary,
             onTap: widget.onCreateProject,
           ),
@@ -357,8 +386,8 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         Expanded(
           child: _QuickActionCard(
             icon: Icons.calculate_outlined,
-            title: 'Калькуляторы',
-            subtitle: 'Материалы',
+            title: l10n.calculators,
+            subtitle: l10n.materials,
             color: colors.primary,
             onTap: () {
               Navigator.pushNamed(context, AppRoutes.calculators);
@@ -368,6 +397,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // SECTION HEADER
+  // ============================================================
 
   Widget _buildSectionHeader(
     BuildContext context, {
@@ -404,6 +437,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 }
+
+// ============================================================
+// STAT CARD
+// ============================================================
 
 enum _StatCardColor { primary, warning, success }
 
@@ -493,6 +530,10 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+// ============================================================
+// QUICK ACTION CARD
+// ============================================================
+
 class _QuickActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -576,6 +617,10 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
+// ============================================================
+// PROJECT CARD
+// ============================================================
+
 class _ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback? onTap;
@@ -586,6 +631,7 @@ class _ProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     final double progress = project.progress.clamp(0.0, 1.0).toDouble();
 
@@ -617,9 +663,7 @@ class _ProjectCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          project.title.isEmpty
-                              ? 'Без названия'
-                              : project.title,
+                          project.title.isEmpty ? l10n.untitled : project.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium?.copyWith(
@@ -631,7 +675,7 @@ class _ProjectCard extends StatelessWidget {
                         const SizedBox(height: 5),
 
                         Text(
-                          _formatOpenedAt(project),
+                          _formatOpenedAt(project, l10n),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.onSurfaceVariant,
                           ),
@@ -656,7 +700,7 @@ class _ProjectCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      project.status.shortName,
+                      _statusName(project.status, l10n),
                       style: TextStyle(
                         color: statusColor,
                         fontSize: 11,
@@ -673,7 +717,7 @@ class _ProjectCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Прогресс',
+                    l10n.progress,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -723,7 +767,23 @@ class _ProjectCard extends StatelessWidget {
     }
   }
 
-  static String _formatOpenedAt(Project project) {
+  static String _statusName(ProjectStatus status, AppLocalizations l10n) {
+    switch (status) {
+      case ProjectStatus.completed:
+        return l10n.statusCompleted;
+
+      case ProjectStatus.planning:
+        return l10n.statusPlanning;
+
+      case ProjectStatus.archived:
+        return l10n.statusArchived;
+
+      case ProjectStatus.active:
+        return l10n.statusActive;
+    }
+  }
+
+  static String _formatOpenedAt(Project project, AppLocalizations l10n) {
     final date = project.lastOpenedAt ?? project.updatedAt ?? project.createdAt;
 
     final now = DateTime.now();
@@ -731,58 +791,58 @@ class _ProjectCard extends StatelessWidget {
     final difference = now.difference(date);
 
     if (difference.isNegative) {
-      return 'Открыт недавно';
+      return l10n.openedRecently;
     }
 
     if (project.lastOpenedAt != null) {
       if (difference.inMinutes < 1) {
-        return 'Открыт только что';
+        return l10n.openedJustNow;
       }
 
       if (difference.inMinutes < 60) {
-        return 'Открыт ${difference.inMinutes} мин. назад';
+        return l10n.openedMinutesAgo(difference.inMinutes);
       }
 
       if (difference.inHours < 24) {
-        return 'Открыт ${difference.inHours} ч. назад';
+        return l10n.openedHoursAgo(difference.inHours);
       }
 
       if (difference.inDays == 1) {
-        return 'Открыт вчера';
+        return l10n.openedYesterday;
       }
 
       if (difference.inDays < 7) {
-        return 'Открыт ${difference.inDays} дн. назад';
+        return l10n.openedDaysAgo(difference.inDays);
       }
 
-      return 'Открыт '
-          '${date.day.toString().padLeft(2, '0')}.'
-          '${date.month.toString().padLeft(2, '0')}.'
-          '${date.year}';
+      return l10n.openedDate(_formatDate(date));
     }
 
     if (difference.inMinutes < 1) {
-      return 'Обновлено только что';
+      return l10n.updatedJustNow;
     }
 
     if (difference.inMinutes < 60) {
-      return 'Обновлено ${difference.inMinutes} мин. назад';
+      return l10n.updatedMinutesAgo(difference.inMinutes);
     }
 
     if (difference.inHours < 24) {
-      return 'Обновлено ${difference.inHours} ч. назад';
+      return l10n.updatedHoursAgo(difference.inHours);
     }
 
     if (difference.inDays == 1) {
-      return 'Обновлено вчера';
+      return l10n.updatedYesterday;
     }
 
     if (difference.inDays < 7) {
-      return 'Обновлено ${difference.inDays} дн. назад';
+      return l10n.updatedDaysAgo(difference.inDays);
     }
 
-    return 'Обновлено '
-        '${date.day.toString().padLeft(2, '0')}.'
+    return l10n.updatedDate(_formatDate(date));
+  }
+
+  static String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}.'
         '${date.month.toString().padLeft(2, '0')}.'
         '${date.year}';
   }

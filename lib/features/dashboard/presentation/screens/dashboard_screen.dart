@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../home/presentation/screens/home_tab_screen.dart';
-import '../../../projects/presentation/screens/projects_tab_screen.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../ai/presentation/screens/ai_tab_screen.dart';
+import '../../../home/presentation/screens/home_tab_screen.dart';
 import '../../../profile/presentation/screens/profile_tab_screen.dart';
+import '../../../projects/presentation/screens/projects_tab_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -104,19 +105,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Brivora'),
+        title: Text(
+          l10n.appName,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         elevation: 0,
         centerTitle: false,
       ),
 
-      // ВАЖНО:
-      //
       // IndexedStack НЕ уничтожает вкладки.
       //
       // Поэтому:
-      //
       // Главная сохраняет свои данные
       // Проекты сохраняют свои данные
       // AI сохраняет своё состояние
@@ -128,32 +131,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-
         onDestinationSelected: _onNavItemTapped,
-
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Главная',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: l10n.home,
           ),
-
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Проекты',
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
+            label: l10n.projects,
           ),
-
           NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'AI',
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome),
+            label: l10n.ai,
           ),
-
           NavigationDestination(
-            icon: Icon(Icons.person_outlined),
-            selectedIcon: Icon(Icons.person),
-            label: 'Профиль',
+            icon: const Icon(Icons.person_outlined),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.profile,
           ),
         ],
       ),
