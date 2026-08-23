@@ -1,0 +1,127 @@
+import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {defineSecret} from "firebase-functions/params";
+import {setGlobalOptions} from "firebase-functions/v2";
+
+const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
+
+setGlobalOptions({
+  maxInstances: 10,
+});
+
+export const brivoraAI = onCall(
+  {
+    region: "europe-west1",
+    secrets: [OPENAI_API_KEY],
+    timeoutSeconds: 120,
+    memory: "512MiB",
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Пользователь не авторизован.",
+      );
+    }
+
+    const message = request.data?.message;
+
+    if (typeof message !== "string" || message.trim().length === 0) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Сообщение не может быть пустым.",
+      );
+    }
+
+    const apiKey = OPENAI_API_KEY.value();
+
+    if (!apiKey) {
+      throw new HttpsError(
+        "failed-precondition",
+        "AI API ключ не настроен.",
+      );
+    }
+
+    try {
+      const response = await fetch(
+        "https://api.openai.com/v1/responses",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-5-mini",
+            input: [
+              {
+                role: "system",
+                content: [
+                  {
+                    type: "input_text",
+                    text:
+                      "Ты — AI-помощник приложения Brivora. " +
+                      "Помогай пользователям со строительными " +
+                      "проектами, расчётами материалов, сметами, " +
+                      "задачами и организацией работ. " +
+                      "Отвечай понятно, структурированно и по делу. " +
+                      "Если пользователь просит расчёт, показывай ход " +
+                      "расчёта и необходимые исходные данные.",
+                  },
+                ],
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "input_text",
+                    text: message.trim(),
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        console.error("AI API error:", errorText);
+
+        throw new HttpsError(
+          "internal",
+          "Не удалось получить ответ от AI.",
+        );
+      }
+
+      const result = await response.json();
+      const outputText = result.output_text;
+
+      if (
+        typeof outputText !== "string" ||
+        outputText.trim().length === 0
+      ) {
+        throw new HttpsError(
+          "internal",
+          "AI вернул пустой ответ.",
+        );
+      }
+
+      return {
+        success: true,
+        message: outputText.trim(),
+      };
+    } catch (error) {
+      console.error("brivoraAI error:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError(
+        "internal",
+        "Произошла ошибка при обращении к AI.",
+      );
+    }
+  },
+);

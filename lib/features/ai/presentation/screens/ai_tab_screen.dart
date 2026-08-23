@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
@@ -13,11 +14,18 @@ class _AITabScreenState extends State<AITabScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  late final FirebaseFunctions _functions;
+
   final List<_ChatMessage> _messages = [];
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+
+    _functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
+
     _messages.add(const _ChatMessage(text: '', isUser: false));
   }
 
@@ -53,7 +61,12 @@ class _AITabScreenState extends State<AITabScreen> {
     ];
   }
 
-  void _sendMessage(AppLocalizations l10n, [String? presetMessage]) {
+  Future<void> _sendMessage(
+    AppLocalizations l10n, [
+    String? presetMessage,
+  ]) async {
+    if (_isLoading) return;
+
     final text = (presetMessage ?? _controller.text).trim();
 
     if (text.isEmpty) return;
@@ -62,53 +75,77 @@ class _AITabScreenState extends State<AITabScreen> {
       _messages.add(_ChatMessage(text: text, isUser: true));
 
       _controller.clear();
+      _isLoading = true;
     });
 
     _scrollToBottom();
 
-    Future.delayed(const Duration(milliseconds: 700), () {
+    try {
+      final callable = _functions.httpsCallable('brivoraAI');
+
+      final result = await callable.call(<String, dynamic>{'message': text});
+
+      final data = result.data;
+
+      if (data is! Map) {
+        throw Exception('AI вернул некорректный ответ.');
+      }
+
+      final response = data['message'];
+
+      if (response is! String || response.trim().isEmpty) {
+        throw Exception('AI вернул пустой ответ.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _messages.add(_ChatMessage(text: response.trim(), isUser: false));
+
+        _isLoading = false;
+      });
+
+      _scrollToBottom();
+    } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
 
       setState(() {
         _messages.add(
-          _ChatMessage(text: _generateDemoAnswer(l10n, text), isUser: false),
+          _ChatMessage(
+            text: e.message?.isNotEmpty == true
+                ? e.message!
+                : 'Не удалось получить ответ от AI.',
+            isUser: false,
+          ),
         );
+
+        _isLoading = false;
       });
 
       _scrollToBottom();
-    });
-  }
+    } catch (e) {
+      if (!mounted) return;
 
-  String _generateDemoAnswer(AppLocalizations l10n, String question) {
-    final lower = question.toLowerCase();
+      setState(() {
+        _messages.add(
+          _ChatMessage(
+            text: 'Ошибка подключения к Brivora AI: $e',
+            isUser: false,
+          ),
+        );
 
-    if (lower.contains('плит') ||
-        lower.contains('кафель') ||
-        lower.contains('tile')) {
-      return l10n.aiTileAnswer;
+        _isLoading = false;
+      });
+
+      _scrollToBottom();
     }
-
-    if (lower.contains('смет') ||
-        lower.contains('расчёт') ||
-        lower.contains('расчет') ||
-        lower.contains('estimate')) {
-      return l10n.aiEstimateAnswer;
-    }
-
-    if (lower.contains('краск') || lower.contains('paint')) {
-      return l10n.aiPaintAnswer;
-    }
-
-    if (lower.contains('обои') || lower.contains('wallpaper')) {
-      return l10n.aiWallpaperAnswer;
-    }
-
-    return l10n.aiDefaultAnswer;
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
+      if (!_scrollController.hasClients) {
+        return;
+      }
 
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -307,7 +344,9 @@ class _AITabScreenState extends State<AITabScreen> {
           ...quickActions.map(
             (action) => _buildQuickAction(
               action,
-              onTap: () => _sendMessage(l10n, action.title),
+              onTap: () {
+                _sendMessage(l10n, action.title);
+              },
               surfaceColor: surfaceColor,
               textPrimary: textPrimary,
               textSecondary: textSecondary,
@@ -504,8 +543,16 @@ class _AITabScreenState extends State<AITabScreen> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      itemCount: _messages.length,
+      itemCount: _messages.length + (_isLoading ? 1 : 0),
       itemBuilder: (context, index) {
+        if (_isLoading && index == _messages.length) {
+          return _buildLoadingBubble(
+            primaryColor: primaryColor,
+            surfaceColor: surfaceColor,
+            borderColor: borderColor,
+          );
+        }
+
         return _buildMessageBubble(
           _messages[index],
           textPrimary: textPrimary,
@@ -514,6 +561,53 @@ class _AITabScreenState extends State<AITabScreen> {
           primaryColor: primaryColor,
         );
       },
+    );
+  }
+
+  Widget _buildLoadingBubble({
+    required Color primaryColor,
+    required Color surfaceColor,
+    required Color borderColor,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              margin: const EdgeInsets.only(right: 9),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primaryColor, const Color(0xFF60A5FA)],
+                ),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 17,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: borderColor),
+              ),
+              child: const SizedBox(
+                width: 34,
+                height: 18,
+                child: _TypingIndicator(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -650,7 +744,9 @@ class _AITabScreenState extends State<AITabScreen> {
                     vertical: 13,
                   ),
                 ),
-                onSubmitted: (_) => _sendMessage(l10n),
+                onSubmitted: (_) {
+                  _sendMessage(l10n);
+                },
               ),
             ),
           ),
@@ -661,24 +757,37 @@ class _AITabScreenState extends State<AITabScreen> {
               final hasText = value.text.trim().isNotEmpty;
 
               return GestureDetector(
-                onTap: hasText ? () => _sendMessage(l10n) : null,
+                onTap: hasText && !_isLoading
+                    ? () {
+                        _sendMessage(l10n);
+                      }
+                    : null,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: hasText
+                    color: hasText && !_isLoading
                         ? primaryColor
                         : colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: Icon(
-                    Icons.arrow_upward_rounded,
-                    color: hasText
-                        ? Colors.white
-                        : textSecondary.withValues(alpha: 0.55),
-                    size: 22,
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          Icons.arrow_upward_rounded,
+                          color: hasText
+                              ? Colors.white
+                              : textSecondary.withValues(alpha: 0.55),
+                          size: 22,
+                        ),
                 ),
               );
             },
@@ -720,6 +829,65 @@ class _OnlineDot extends StatelessWidget {
         color: Color(0xFF22C55E),
         shape: BoxShape.circle,
       ),
+    );
+  }
+}
+
+class _TypingIndicator extends StatefulWidget {
+  const _TypingIndicator();
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = _controller.value;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (index) {
+            final offset = (value + index * 0.2) % 1.0;
+
+            final opacity = 0.35 + (0.65 * (1 - (offset - 0.5).abs() * 2));
+
+            return Container(
+              width: 5,
+              height: 5,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: opacity),
+                shape: BoxShape.circle,
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }
