@@ -2,6 +2,8 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {defineSecret} from "firebase-functions/params";
 import {setGlobalOptions} from "firebase-functions/v2";
 
+export {telegramBot} from "./telegram";
+
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
 setGlobalOptions({
@@ -25,7 +27,10 @@ export const brivoraAI = onCall(
 
     const message = request.data?.message;
 
-    if (typeof message !== "string" || message.trim().length === 0) {
+    if (
+      typeof message !== "string" ||
+      message.trim().length === 0
+    ) {
       throw new HttpsError(
         "invalid-argument",
         "Сообщение не может быть пустым.",
@@ -61,11 +66,11 @@ export const brivoraAI = onCall(
                     text:
                       "Ты — AI-помощник приложения Brivora. " +
                       "Помогай пользователям со строительными " +
-                      "проектами, расчётами материалов, сметами, " +
-                      "задачами и организацией работ. " +
+                      "проектами, расчётами, сметами, задачами " +
+                      "и организацией работ. " +
                       "Отвечай понятно, структурированно и по делу. " +
-                      "Если пользователь просит расчёт, показывай ход " +
-                      "расчёта и необходимые исходные данные.",
+                      "Если пользователь просит расчёт, показывай " +
+                      "ход расчёта и необходимые исходные данные.",
                   },
                 ],
               },
@@ -95,6 +100,7 @@ export const brivoraAI = onCall(
       }
 
       const result = await response.json();
+
       const outputText = result.output_text;
 
       if (

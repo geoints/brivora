@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../../../core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -78,18 +80,19 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFF0F172A);
     const primaryBlue = Color(0xFF2563EB);
-    const lightBlue = Color(0xFF60A5FA);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Stack(
         children: [
+          // Фоновая сетка и свечение
           Positioned.fill(
             child: CustomPaint(
               painter: _SplashBackgroundPainter(primaryColor: primaryBlue),
             ),
           ),
 
+          // Центральное синее свечение
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
@@ -107,6 +110,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
+          // Основной контент
           SafeArea(
             child: Center(
               child: AnimatedBuilder(
@@ -123,6 +127,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Логотип Brivora
                     AnimatedBuilder(
                       animation: _logoAnimation,
                       builder: (context, child) {
@@ -134,14 +139,12 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         );
                       },
-                      child: const _BrivoraLogo(
-                        primaryColor: primaryBlue,
-                        accentColor: lightBlue,
-                      ),
+                      child: const _BrivoraLogo(),
                     ),
 
                     const SizedBox(height: 28),
 
+                    // Название приложения
                     const Text(
                       'Brivora',
                       style: TextStyle(
@@ -155,6 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 10),
 
+                    // Подзаголовок
                     Text(
                       'PROJECT MANAGEMENT',
                       style: TextStyle(
@@ -168,6 +172,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 42),
 
+                    // Индикатор загрузки
                     const _SplashProgressIndicator(color: primaryBlue),
                   ],
                 ),
@@ -175,6 +180,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
+          // Нижняя подпись
           Positioned(
             left: 0,
             right: 0,
@@ -196,11 +202,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _BrivoraLogo extends StatelessWidget {
-  final Color primaryColor;
-  final Color accentColor;
+// ============================================================
+// BRIVORA LOGO
+// ============================================================
 
-  const _BrivoraLogo({required this.primaryColor, required this.accentColor});
+class _BrivoraLogo extends StatelessWidget {
+  const _BrivoraLogo();
 
   @override
   Widget build(BuildContext context) {
@@ -208,106 +215,31 @@ class _BrivoraLogo extends StatelessWidget {
       width: 104,
       height: 104,
       decoration: BoxDecoration(
-        color: const Color(0xFF172033),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withValues(alpha: 0.22),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.28),
             blurRadius: 38,
             spreadRadius: 2,
           ),
         ],
       ),
-      child: Center(
-        child: SizedBox(
-          width: 58,
-          height: 58,
-          child: CustomPaint(
-            painter: _BrivoraLogoPainter(
-              primaryColor: primaryColor,
-              accentColor: accentColor,
-            ),
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Image.asset(
+          'assets/icons/splash.png',
+          width: 104,
+          height: 104,
+          fit: BoxFit.cover,
         ),
       ),
     );
   }
 }
 
-class _BrivoraLogoPainter extends CustomPainter {
-  final Color primaryColor;
-  final Color accentColor;
-
-  const _BrivoraLogoPainter({
-    required this.primaryColor,
-    required this.accentColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
-
-    final left = size.width * 0.20;
-    final top = size.height * 0.12;
-    final right = size.width * 0.80;
-    final bottom = size.height * 0.88;
-
-    path.moveTo(left, bottom);
-    path.lineTo(left, top);
-
-    path.lineTo(right * 0.82, top);
-
-    path.cubicTo(
-      right,
-      top,
-      right,
-      size.height * 0.43,
-      right * 0.78,
-      size.height * 0.50,
-    );
-
-    path.cubicTo(
-      right,
-      size.height * 0.57,
-      right,
-      bottom,
-      right * 0.82,
-      bottom,
-    );
-
-    path.lineTo(left, bottom);
-
-    paint.shader = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [accentColor, primaryColor],
-    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    canvas.drawPath(path, paint);
-
-    final middle = Path()
-      ..moveTo(left + 1, size.height * 0.50)
-      ..lineTo(size.width * 0.63, size.height * 0.50);
-
-    paint.shader = null;
-    paint.color = Colors.white.withValues(alpha: 0.92);
-
-    canvas.drawPath(middle, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _BrivoraLogoPainter oldDelegate) {
-    return oldDelegate.primaryColor != primaryColor ||
-        oldDelegate.accentColor != accentColor;
-  }
-}
+// ============================================================
+// SPLASH PROGRESS INDICATOR
+// ============================================================
 
 class _SplashProgressIndicator extends StatefulWidget {
   final Color color;
@@ -391,8 +323,11 @@ class _ProgressPainter extends CustomPainter {
     );
 
     canvas.save();
+
     canvas.clipRect(Offset.zero & size);
+
     canvas.drawRRect(foregroundRect, foregroundPaint);
+
     canvas.restore();
   }
 
@@ -402,6 +337,10 @@ class _ProgressPainter extends CustomPainter {
   }
 }
 
+// ============================================================
+// SPLASH BACKGROUND
+// ============================================================
+
 class _SplashBackgroundPainter extends CustomPainter {
   final Color primaryColor;
 
@@ -409,6 +348,7 @@ class _SplashBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Тонкая сетка
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
@@ -424,6 +364,7 @@ class _SplashBackgroundPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
 
+    // Центральное свечение
     final glowPaint = Paint()
       ..shader =
           RadialGradient(
