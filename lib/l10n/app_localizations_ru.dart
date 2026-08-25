@@ -18,7 +18,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get projects => 'Проекты';
 
   @override
-  String get ai => 'Искусственный интеллект';
+  String get ai => 'ИИ';
 
   @override
   String get profile => 'Профиль';

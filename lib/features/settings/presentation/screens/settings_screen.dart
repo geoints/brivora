@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/theme.dart';
 import '../../../../app/theme_controller.dart';
@@ -17,6 +18,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   static const String _currencyKey = 'brivora_currency';
   static const String _notificationsKey = 'brivora_notifications';
+
+  static final Uri _telegramUri = Uri.parse('https://t.me/BrivoraAI_bot');
 
   String _currency = '₸';
   bool _notificationsEnabled = true;
@@ -76,6 +79,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           duration: const Duration(seconds: 2),
         ),
       );
+  }
+
+  Future<void> _openTelegramSupport(LocaleController controller) async {
+    try {
+      final opened = await launchUrl(
+        _telegramUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        _showMessage(
+          controller.isKazakh
+              ? 'Telegram-ды ашу мүмкін болмады'
+              : 'Не удалось открыть Telegram',
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      _showMessage(
+        controller.isKazakh
+            ? 'Telegram-ды ашу мүмкін болмады'
+            : 'Не удалось открыть Telegram',
+      );
+    }
   }
 
   @override
@@ -174,10 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 28),
 
-            _buildSectionTitle(
-              localeController.isKazakh ? 'Аккаунт' : 'Аккаунт',
-              isDark,
-            ),
+            _buildSectionTitle('Аккаунт', isDark),
 
             const SizedBox(height: 10),
 
@@ -215,19 +240,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? 'Сұрақтарға жауаптар және Brivora қолдауы'
                       : 'Ответы на вопросы и поддержка Brivora',
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _showHelp(localeController),
+                  onTap: () {
+                    _openTelegramSupport(localeController);
+                  },
                 ),
 
                 _buildDivider(),
 
                 _buildSettingsTile(
                   icon: Icons.info_outline_rounded,
-                  title: 'Brivora туралы',
+                  title: localeController.isKazakh
+                      ? 'Brivora туралы'
+                      : 'О Brivora',
                   subtitle: localeController.isKazakh
                       ? 'Қолданба нұсқасы және ақпарат'
                       : 'Версия приложения и информация',
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _showAbout(localeController),
+                  onTap: () {
+                    _showAbout(localeController);
+                  },
                 ),
               ],
             ),
@@ -683,38 +714,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
           : const Icon(Icons.radio_button_unchecked),
       onTap: onTap,
-    );
-  }
-
-  void _showHelp(LocaleController controller) {
-    final isKazakh = controller.isKazakh;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(isKazakh ? 'Көмек' : 'Помощь'),
-          content: Text(
-            isKazakh
-                ? 'Brivora қолданбасында мәселе туындаса, '
-                      'қолдау қызметіне хабарласыңыз. '
-                      'Болашақта мұнда Brivora Telegram-боты арқылы '
-                      'қолдау қосылады.'
-                : 'Если у вас возникла проблема с Brivora, '
-                      'обратитесь в службу поддержки. '
-                      'В будущем здесь будет подключена '
-                      'поддержка через Telegram-бот Brivora.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: Text(isKazakh ? 'Түсінікті' : 'Понятно'),
-            ),
-          ],
-        );
-      },
     );
   }
 

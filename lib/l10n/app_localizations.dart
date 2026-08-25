@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @ai.
   ///
   /// In ru, this message translates to:
-  /// **'Искусственный интеллект'**
+  /// **'ИИ'**
   String get ai;
 
   /// No description provided for @profile.

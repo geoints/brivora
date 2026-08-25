@@ -69,13 +69,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     }
   }
 
-  /// Загружает актуальную версию проекта из Firestore.
-  ///
-  /// Нужен, потому что прогресс и статус проекта пересчитываются
-  /// в TasksProvider._syncProjectProgress() при каждом изменении задач,
-  /// а этот экран хранит собственную копию проекта в _project и сама
-  /// себя не обновляет — без явного вызова прогресс-бар и статус-чип
-  /// останутся "старыми" даже после того как задачи изменились.
   Future<void> _reloadProject() async {
     try {
       final updatedProject = await ProjectRepository().getProjectById(
@@ -375,17 +368,26 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           horizontal: 16,
           vertical: 12,
         ),
+
         leading: InkWell(
           onTap: () async {
             final nextStatus = task.status == TaskStatus.completed
                 ? TaskStatus.active
                 : TaskStatus.completed;
 
-            await tasksProvider.updateTaskStatus(task, nextStatus);
+            try {
+              await tasksProvider.updateTaskStatus(task, nextStatus);
 
-            if (!mounted) return;
+              if (!mounted) return;
 
-            await _reloadProject();
+              await _reloadProject();
+            } catch (e) {
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Не удалось обновить задачу: $e')),
+              );
+            }
           },
           borderRadius: BorderRadius.circular(24),
           child: CircleAvatar(
@@ -398,7 +400,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             ),
           ),
         ),
+
         title: Text(task.title, style: Theme.of(context).textTheme.titleMedium),
+
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -444,6 +448,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             ),
           ],
         ),
+
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: () => _confirmAndDeleteTask(context, task),
@@ -452,7 +457,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     );
   }
 
-  /// Спрашивает подтверждение перед удалением задачи.
   Future<void> _confirmAndDeleteTask(BuildContext context, Task task) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -477,9 +481,11 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       },
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     try {
       await context.read<TasksProvider>().deleteTask(task.id, project.id);
@@ -488,7 +494,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
       await _reloadProject();
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
@@ -497,166 +503,17 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   Future<void> _showCreateTaskDialog(BuildContext context) async {
-    final titleController = TextEditingController();
-
-    final descriptionController = TextEditingController();
-
-    TaskPriority priority = TaskPriority.normal;
-
-    DateTime? deadline;
-
-    bool canSave = false;
-
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Новая задача'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      onChanged: (value) {
-                        setState(() {
-                          canSave = value.trim().isNotEmpty;
-                        });
-                      },
-                      decoration: const InputDecoration(labelText: 'Название'),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Описание'),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    DropdownButtonFormField<TaskPriority>(
-                      initialValue: priority,
-                      items: TaskPriority.values.map((value) {
-                        return DropdownMenuItem(
-                          value: value,
-                          child: Text(value.displayName),
-                        );
-                      }).toList(),
-                      decoration: const InputDecoration(labelText: 'Приоритет'),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            priority = value;
-                          });
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            deadline != null
-                                ? 'Срок: ${_formatDate(deadline!)}'
-                                : 'Срок не выбран',
-                          ),
-                        ),
-
-                        TextButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-
-                            if (picked != null) {
-                              setState(() {
-                                deadline = picked;
-                              });
-                            }
-                          },
-                          child: const Text('Выбрать'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Отмена'),
-                ),
-
-                ElevatedButton(
-                  onPressed: canSave
-                      ? () async {
-                          final task = Task(
-                            id: '',
-                            projectId: project.id,
-                            title: titleController.text.trim(),
-                            description: descriptionController.text.trim(),
-                            status: TaskStatus.active,
-                            priority: priority,
-                            createdAt: DateTime.now(),
-                            deadline: deadline,
-                            completedAt: null,
-                          );
-
-                          try {
-                            await context.read<TasksProvider>().createTask(
-                              task,
-                            );
-
-                            if (!context.mounted) {
-                              return;
-                            }
-
-                            Navigator.pop(dialogContext);
-
-                            if (!mounted) {
-                              return;
-                            }
-
-                            await _reloadProject();
-                          } catch (e) {
-                            if (!context.mounted) {
-                              return;
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Не удалось сохранить задачу: $e',
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      : null,
-                  child: const Text('Сохранить'),
-                ),
-              ],
-            );
-          },
-        );
+      barrierDismissible: false,
+      builder: (_) {
+        return _CreateTaskDialog(projectId: project.id);
       },
     );
 
-    titleController.dispose();
-    descriptionController.dispose();
+    if (!mounted) return;
+
+    await _reloadProject();
   }
 
   Widget _buildProjectSections(BuildContext context) {
@@ -737,6 +594,218 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Отдельный экран-диалог создания задачи.
+///
+/// Вынесен из ProjectDetailsScreen специально для того,
+/// чтобы жизненный цикл формы не зависел от StatefulBuilder
+/// внутри showDialog.
+class _CreateTaskDialog extends StatefulWidget {
+  final String projectId;
+
+  const _CreateTaskDialog({required this.projectId});
+
+  @override
+  State<_CreateTaskDialog> createState() => _CreateTaskDialogState();
+}
+
+class _CreateTaskDialogState extends State<_CreateTaskDialog> {
+  late final TextEditingController _titleController;
+
+  late final TextEditingController _descriptionController;
+
+  TaskPriority _priority = TaskPriority.normal;
+
+  DateTime? _deadline;
+
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _titleController = TextEditingController();
+
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+
+    super.dispose();
+  }
+
+  bool get _canSave {
+    return _titleController.text.trim().isNotEmpty && !_isSaving;
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}.'
+        '${date.month.toString().padLeft(2, '0')}.'
+        '${date.year}';
+  }
+
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _deadline ?? now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
+
+    if (!mounted || picked == null) {
+      return;
+    }
+
+    setState(() {
+      _deadline = picked;
+    });
+  }
+
+  Future<void> _saveTask() async {
+    if (!_canSave) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final task = Task(
+      id: '',
+      projectId: widget.projectId,
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      status: TaskStatus.active,
+      priority: _priority,
+      createdAt: DateTime.now(),
+      deadline: _deadline,
+      completedAt: null,
+    );
+
+    try {
+      await context.read<TasksProvider>().createTask(task);
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сохранить задачу: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Новая задача'),
+
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              enabled: !_isSaving,
+              onChanged: (_) {
+                setState(() {});
+              },
+              decoration: const InputDecoration(labelText: 'Название'),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _descriptionController,
+              enabled: !_isSaving,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Описание'),
+            ),
+
+            const SizedBox(height: 12),
+
+            DropdownButtonFormField<TaskPriority>(
+              initialValue: _priority,
+              items: TaskPriority.values.map((value) {
+                return DropdownMenuItem<TaskPriority>(
+                  value: value,
+                  child: Text(value.displayName),
+                );
+              }).toList(),
+              decoration: const InputDecoration(labelText: 'Приоритет'),
+              onChanged: _isSaving
+                  ? null
+                  : (value) {
+                      if (value == null) {
+                        return;
+                      }
+
+                      setState(() {
+                        _priority = value;
+                      });
+                    },
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _deadline != null
+                        ? 'Срок: ${_formatDate(_deadline!)}'
+                        : 'Срок не выбран',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+
+                TextButton(
+                  onPressed: _isSaving ? null : _pickDeadline,
+                  child: const Text('Выбрать'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+
+      actions: [
+        TextButton(
+          onPressed: _isSaving
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                },
+          child: const Text('Отмена'),
+        ),
+
+        FilledButton(
+          onPressed: _canSave ? _saveTask : null,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Сохранить'),
         ),
       ],
     );

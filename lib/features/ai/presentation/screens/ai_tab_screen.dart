@@ -294,15 +294,6 @@ class _AITabScreenState extends State<AITabScreen> {
               ],
             ),
           ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.more_horiz, color: textSecondary, size: 22),
-          ),
         ],
       ),
     );

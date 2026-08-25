@@ -45,6 +45,7 @@ dependencies:
   # Utilities
   uuid: ^4.5.1
   shared_preferences: ^2.5.3
+  url_launcher: ^6.3.2
 
   # Notifications
   flutter_local_notifications: ^22.3.0

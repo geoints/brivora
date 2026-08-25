@@ -15,6 +15,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
+
   late final Animation<double> _fadeAnimation;
   late final Animation<double> _scaleAnimation;
   late final Animation<double> _logoAnimation;
@@ -73,26 +74,49 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _navigationTimer?.cancel();
     _animationController.dispose();
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFF0F172A);
-    const primaryBlue = Color(0xFF2563EB);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final isDark = theme.brightness == Brightness.dark;
+
+    final backgroundColor = colorScheme.surface;
+
+    final primaryColor = colorScheme.primary;
+
+    final primaryTextColor = colorScheme.onSurface;
+
+    final secondaryTextColor = colorScheme.onSurfaceVariant;
+
+    final gridColor = primaryColor.withValues(alpha: isDark ? 0.035 : 0.055);
+
+    final glowOpacity = isDark ? 0.12 : 0.07;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Stack(
         children: [
-          // Фоновая сетка и свечение
+          // ==================================================
+          // BACKGROUND
+          // ==================================================
           Positioned.fill(
             child: CustomPaint(
-              painter: _SplashBackgroundPainter(primaryColor: primaryBlue),
+              painter: _SplashBackgroundPainter(
+                primaryColor: primaryColor,
+                gridColor: gridColor,
+                glowOpacity: glowOpacity,
+              ),
             ),
           ),
 
-          // Центральное синее свечение
+          // ==================================================
+          // CENTRAL GLOW
+          // ==================================================
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
@@ -101,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
                     center: Alignment.center,
                     radius: 0.8,
                     colors: [
-                      primaryBlue.withValues(alpha: 0.12),
+                      primaryColor.withValues(alpha: glowOpacity),
                       Colors.transparent,
                     ],
                   ),
@@ -110,7 +134,9 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Основной контент
+          // ==================================================
+          // MAIN CONTENT
+          // ==================================================
           SafeArea(
             child: Center(
               child: AnimatedBuilder(
@@ -127,7 +153,9 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Логотип Brivora
+                    // ==================================================
+                    // LOGO
+                    // ==================================================
                     AnimatedBuilder(
                       animation: _logoAnimation,
                       builder: (context, child) {
@@ -139,17 +167,18 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         );
                       },
-                      child: const _BrivoraLogo(),
+                      child: _BrivoraLogo(glowColor: primaryColor),
                     ),
 
                     const SizedBox(height: 28),
 
-                    // Название приложения
-                    const Text(
+                    // ==================================================
+                    // APP NAME
+                    // ==================================================
+                    Text(
                       'Brivora',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 38,
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        color: primaryTextColor,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -1.4,
                         height: 1,
@@ -158,12 +187,13 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 10),
 
-                    // Подзаголовок
+                    // ==================================================
+                    // SUBTITLE
+                    // ==================================================
                     Text(
                       'PROJECT MANAGEMENT',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.48),
-                        fontSize: 11,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: secondaryTextColor.withValues(alpha: 0.65),
                         fontWeight: FontWeight.w600,
                         letterSpacing: 2.8,
                         height: 1,
@@ -172,15 +202,24 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 42),
 
-                    // Индикатор загрузки
-                    const _SplashProgressIndicator(color: primaryBlue),
+                    // ==================================================
+                    // LOADING INDICATOR
+                    // ==================================================
+                    _SplashProgressIndicator(
+                      color: primaryColor,
+                      backgroundColor: colorScheme.onSurface.withValues(
+                        alpha: isDark ? 0.08 : 0.10,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Нижняя подпись
+          // ==================================================
+          // BOTTOM LABEL
+          // ==================================================
           Positioned(
             left: 0,
             right: 0,
@@ -188,8 +227,10 @@ class _SplashScreenState extends State<SplashScreen>
             child: Text(
               'BRIVORA',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.18),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: secondaryTextColor.withValues(
+                  alpha: isDark ? 0.30 : 0.45,
+                ),
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 3.2,
@@ -207,7 +248,9 @@ class _SplashScreenState extends State<SplashScreen>
 // ============================================================
 
 class _BrivoraLogo extends StatelessWidget {
-  const _BrivoraLogo();
+  final Color glowColor;
+
+  const _BrivoraLogo({required this.glowColor});
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +261,7 @@ class _BrivoraLogo extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.28),
+            color: glowColor.withValues(alpha: 0.28),
             blurRadius: 38,
             spreadRadius: 2,
           ),
@@ -243,8 +286,12 @@ class _BrivoraLogo extends StatelessWidget {
 
 class _SplashProgressIndicator extends StatefulWidget {
   final Color color;
+  final Color backgroundColor;
 
-  const _SplashProgressIndicator({required this.color});
+  const _SplashProgressIndicator({
+    required this.color,
+    required this.backgroundColor,
+  });
 
   @override
   State<_SplashProgressIndicator> createState() =>
@@ -268,6 +315,7 @@ class _SplashProgressIndicatorState extends State<_SplashProgressIndicator>
   @override
   void dispose() {
     _controller.dispose();
+
     super.dispose();
   }
 
@@ -282,6 +330,7 @@ class _SplashProgressIndicatorState extends State<_SplashProgressIndicator>
           return CustomPaint(
             painter: _ProgressPainter(
               color: widget.color,
+              backgroundColor: widget.backgroundColor,
               progress: _controller.value,
             ),
           );
@@ -293,14 +342,19 @@ class _SplashProgressIndicatorState extends State<_SplashProgressIndicator>
 
 class _ProgressPainter extends CustomPainter {
   final Color color;
+  final Color backgroundColor;
   final double progress;
 
-  const _ProgressPainter({required this.color, required this.progress});
+  const _ProgressPainter({
+    required this.color,
+    required this.backgroundColor,
+    required this.progress,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final backgroundPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = backgroundColor
       ..style = PaintingStyle.fill;
 
     final foregroundPaint = Paint()
@@ -315,6 +369,7 @@ class _ProgressPainter extends CustomPainter {
     canvas.drawRRect(backgroundRect, backgroundPaint);
 
     final width = size.width * 0.32;
+
     final start = (size.width + width) * progress - width;
 
     final foregroundRect = RRect.fromRectAndRadius(
@@ -333,7 +388,9 @@ class _ProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }
 
@@ -343,32 +400,47 @@ class _ProgressPainter extends CustomPainter {
 
 class _SplashBackgroundPainter extends CustomPainter {
   final Color primaryColor;
+  final Color gridColor;
+  final double glowOpacity;
 
-  const _SplashBackgroundPainter({required this.primaryColor});
+  const _SplashBackgroundPainter({
+    required this.primaryColor,
+    required this.gridColor,
+    required this.glowOpacity,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Тонкая сетка
-    final paint = Paint()
+    // ==================================================
+    // GRID
+    // ==================================================
+
+    final gridPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = primaryColor.withValues(alpha: 0.035);
+      ..color = gridColor;
 
     const gridSize = 52.0;
 
     for (double x = 0; x <= size.width; x += gridSize) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
 
     for (double y = 0; y <= size.height; y += gridSize) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Центральное свечение
+    // ==================================================
+    // CENTRAL GLOW
+    // ==================================================
+
     final glowPaint = Paint()
       ..shader =
           RadialGradient(
-            colors: [primaryColor.withValues(alpha: 0.08), Colors.transparent],
+            colors: [
+              primaryColor.withValues(alpha: glowOpacity),
+              Colors.transparent,
+            ],
           ).createShader(
             Rect.fromCircle(
               center: Offset(size.width * 0.5, size.height * 0.42),
@@ -385,6 +457,8 @@ class _SplashBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SplashBackgroundPainter oldDelegate) {
-    return oldDelegate.primaryColor != primaryColor;
+    return oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.gridColor != gridColor ||
+        oldDelegate.glowOpacity != glowOpacity;
   }
 }

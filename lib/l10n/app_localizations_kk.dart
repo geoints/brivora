@@ -18,7 +18,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get projects => 'Жобалар';
 
   @override
-  String get ai => 'Жасанды интеллект';
+  String get ai => 'ЖИ';
 
   @override
   String get profile => 'Профиль';
