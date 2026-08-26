@@ -4,16 +4,20 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+
 import '../../features/projects/presentation/screens/project_details_screen.dart';
 import '../../features/projects/domain/models/project.dart';
+
 import '../../features/calculators/presentation/screens/calculators_screen.dart';
 import '../../features/calculators/presentation/screens/tile_calculator_screen.dart';
 import '../../features/calculators/presentation/screens/wallpaper_calculator_screen.dart';
 import '../../features/calculators/presentation/screens/paint_calculator_screen.dart';
 import '../../features/calculators/presentation/screens/laminate_calculator_screen.dart';
 import '../../features/calculators/presentation/screens/concrete_calculator_screen.dart';
+
 import '../../features/estimates/presentation/screens/estimate_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/subscription/presentation/screens/subscription_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -34,6 +38,8 @@ class AppRoutes {
   static const String concreteCalculator = '/concrete-calculator';
 
   static const String settings = '/settings';
+
+  static const String subscription = '/subscription';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -107,6 +113,9 @@ class AppRoutes {
 
       case AppRoutes.settings:
         return _buildRoute(const SettingsScreen());
+
+      case subscription:
+        return _buildRoute(const SubscriptionScreen());
 
       default:
         return _buildRoute(
