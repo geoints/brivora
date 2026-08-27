@@ -199,13 +199,13 @@ class PhotosScreen extends StatelessWidget {
                             imageUrl: photo.imageUrl,
                             fit: BoxFit.cover,
 
-                            placeholder: (_, __) {
+                            placeholder: (_, _) {
                               return const Center(
                                 child: CircularProgressIndicator(),
                               );
                             },
 
-                            errorWidget: (_, __, ___) {
+                            errorWidget: (_, _, _) {
                               return const Center(
                                 child: Icon(Icons.error_outline, size: 40),
                               );

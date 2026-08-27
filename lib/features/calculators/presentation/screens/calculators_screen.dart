@@ -35,7 +35,7 @@ class CalculatorsScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.12),
+                          ).colorScheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
@@ -93,7 +93,7 @@ class CalculatorsScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.secondary.withOpacity(0.12),
+                          ).colorScheme.secondary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
@@ -149,7 +149,7 @@ class CalculatorsScreen extends StatelessWidget {
                         height: 56,
                         width: 56,
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
+                          color: Colors.green.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -207,7 +207,7 @@ class CalculatorsScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.tertiary.withOpacity(0.12),
+                          ).colorScheme.tertiary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
@@ -263,7 +263,7 @@ class CalculatorsScreen extends StatelessWidget {
                         height: 56,
                         width: 56,
                         decoration: BoxDecoration(
-                          color: Colors.brown.withOpacity(0.12),
+                          color: Colors.brown.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(

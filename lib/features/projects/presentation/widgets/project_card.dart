@@ -212,7 +212,7 @@ class ProjectCard extends StatelessWidget {
       imageUrl: url,
       fit: BoxFit.cover,
 
-      placeholder: (_, __) {
+      placeholder: (_, _) {
         return Container(
           color: colors.surfaceContainerHighest,
           alignment: Alignment.center,
@@ -227,7 +227,7 @@ class ProjectCard extends StatelessWidget {
         );
       },
 
-      errorWidget: (_, __, ___) {
+      errorWidget: (_, _, _) {
         return Container(
           color: colors.surfaceContainerHighest,
           alignment: Alignment.center,

@@ -263,7 +263,7 @@ class _ProfileTabScreenState extends State<ProfileTabScreen> {
             ? Image.network(
                 url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (_, _, _) {
                   return _buildInitials();
                 },
               )

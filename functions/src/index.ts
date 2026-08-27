@@ -2,6 +2,11 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {defineSecret} from "firebase-functions/params";
 import {setGlobalOptions} from "firebase-functions/v2";
 
+import {
+  getSubscription,
+  isProSubscription,
+} from "./subscriptions/service";
+
 export {telegramBot} from "./telegram";
 
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
@@ -9,6 +14,11 @@ const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 setGlobalOptions({
   maxInstances: 10,
 });
+
+
+// ─────────────────────────────────────────────
+// Brivora AI
+// ─────────────────────────────────────────────
 
 export const brivoraAI = onCall(
   {
@@ -127,6 +137,62 @@ export const brivoraAI = onCall(
       throw new HttpsError(
         "internal",
         "Произошла ошибка при обращении к AI.",
+      );
+    }
+  },
+);
+
+
+// ─────────────────────────────────────────────
+// Subscription status
+// ─────────────────────────────────────────────
+
+export const getSubscriptionStatus = onCall(
+  {
+    region: "europe-west1",
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Пользователь не авторизован.",
+      );
+    }
+
+    const uid = request.auth.uid;
+
+    try {
+      const subscription = await getSubscription(uid);
+
+      const isPro = isProSubscription(subscription);
+
+      return {
+        success: true,
+        isPro,
+        subscription: subscription ?
+          {
+            plan: subscription.plan,
+            status: subscription.status,
+            startedAt:
+                subscription.startedAt?.toMillis() ?? null,
+            expiresAt:
+                subscription.expiresAt?.toMillis() ?? null,
+            provider:
+                subscription.provider ?? null,
+            paymentId:
+                subscription.paymentId ?? null,
+          } :
+          null,
+      };
+    } catch (error) {
+      console.error(
+        "getSubscriptionStatus error:",
+        error,
+      );
+
+      throw new HttpsError(
+        "internal",
+        "Не удалось получить статус подписки.",
       );
     }
   },

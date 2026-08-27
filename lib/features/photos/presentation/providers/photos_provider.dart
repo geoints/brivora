@@ -6,7 +6,7 @@ import '../../domain/models/photo.dart';
 class PhotosProvider extends ChangeNotifier {
   final PhotoRepository _repository = PhotoRepository();
 
-  List<Photo> _photos = [];
+  final List<Photo> _photos = [];
   bool _isLoading = false;
   String? _error;
 
