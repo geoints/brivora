@@ -10,6 +10,8 @@ import '../widgets/add_estimate_item_dialog.dart';
 import '../widgets/estimate_category_section.dart';
 import '../widgets/estimate_summary_card.dart';
 import '../../../projects/domain/models/project.dart';
+import '../../../../core/routes/app_routes.dart';
+import '../../../../core/services/subscription_service.dart';
 
 class EstimateScreen extends StatefulWidget {
   final Project project;
@@ -87,13 +89,9 @@ class _EstimateScreenState extends State<EstimateScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 EstimateSummaryCard(provider: provider),
-
                 const SizedBox(height: 16),
-
                 _buildCategoryFilters(provider),
-
                 const SizedBox(height: 16),
-
                 ...EstimateItem.categories.map((category) {
                   final categoryItems = provider.categoryItems(category);
 
@@ -112,7 +110,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
                     },
                   );
                 }),
-
                 if (provider.items.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 24),
@@ -121,8 +118,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ),
-
-                // Отступ снизу, чтобы FAB не перекрывал последний элемент.
                 const SizedBox(height: 80),
               ],
             ),
@@ -138,7 +133,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
       runSpacing: 8,
       children: [
         _buildFilterChip(provider, 'all', 'Все'),
-
         for (final category in EstimateItem.categories)
           _buildFilterChip(
             provider,
@@ -211,7 +205,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
               },
               child: const Text('Отмена'),
             ),
-
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context, true);
@@ -237,93 +230,70 @@ class _EstimateScreenState extends State<EstimateScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}.'
-        '${date.month.toString().padLeft(2, '0')}.'
-        '${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
   Future<void> _exportToPdf(EstimateProvider provider) async {
     try {
+      final isPro = await SubscriptionService.instance.isPro();
+
+      if (!isPro) {
+        if (!mounted) return;
+        await Navigator.pushNamed(context, AppRoutes.subscription);
+        return;
+      }
+
       final pdf = pw.Document();
 
-      // Unicode-шрифты с поддержкой кириллицы.
       final regularFont = await PdfGoogleFonts.notoSansRegular();
-
       final boldFont = await PdfGoogleFonts.notoSansBold();
-
       final pdfTheme = pw.ThemeData.withFont(base: regularFont, bold: boldFont);
 
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           theme: pdfTheme,
-
           margin: const pw.EdgeInsets.all(32),
-
           build: (context) {
             return [
-              // Заголовок
               pw.Text(
                 'Смета проекта: ${widget.project.title}',
                 style: pw.TextStyle(font: boldFont, fontSize: 24),
               ),
-
               pw.SizedBox(height: 8),
-
-              // Дата
               pw.Text(
                 'Дата: ${_formatDate(DateTime.now())}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.SizedBox(height: 20),
-
-              // Общая стоимость
               pw.Text(
-                'Общая стоимость: '
-                '${EstimateItem.formatMoney(provider.grandTotal)}',
+                'Общая стоимость: ${EstimateItem.formatMoney(provider.grandTotal)}',
                 style: pw.TextStyle(font: boldFont, fontSize: 17),
               ),
-
               pw.SizedBox(height: 14),
-
-              // Итоги по категориям
               pw.Text(
-                'Материалы: '
-                '${EstimateItem.formatMoney(provider.totalMaterials)}',
+                'Материалы: ${EstimateItem.formatMoney(provider.totalMaterials)}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.Text(
-                'Работа: '
-                '${EstimateItem.formatMoney(provider.totalLabor)}',
+                'Работа: ${EstimateItem.formatMoney(provider.totalLabor)}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.Text(
-                'Доставка: '
-                '${EstimateItem.formatMoney(provider.totalDelivery)}',
+                'Доставка: ${EstimateItem.formatMoney(provider.totalDelivery)}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.Text(
-                'Инструменты: '
-                '${EstimateItem.formatMoney(provider.totalTools)}',
+                'Инструменты: ${EstimateItem.formatMoney(provider.totalTools)}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.Text(
-                'Прочее: '
-                '${EstimateItem.formatMoney(provider.totalOther)}',
+                'Прочее: ${EstimateItem.formatMoney(provider.totalOther)}',
                 style: pw.TextStyle(font: regularFont, fontSize: 11),
               ),
-
               pw.SizedBox(height: 20),
-
-              // Таблица
               pw.Table.fromTextArray(
                 headers: ['Название', 'Кол-во', 'Ед.', 'Цена', 'Сумма'],
-
                 data: provider.items.map((item) {
                   return [
                     item.name,
@@ -333,17 +303,12 @@ class _EstimateScreenState extends State<EstimateScreen> {
                     EstimateItem.formatMoney(item.totalPrice),
                   ];
                 }).toList(),
-
                 headerStyle: pw.TextStyle(font: boldFont, fontSize: 10),
-
                 cellStyle: pw.TextStyle(font: regularFont, fontSize: 9),
-
                 headerDecoration: const pw.BoxDecoration(
                   color: PdfColors.grey300,
                 ),
-
                 cellAlignment: pw.Alignment.centerLeft,
-
                 columnWidths: {
                   0: const pw.FlexColumnWidth(3),
                   1: const pw.FlexColumnWidth(1),
@@ -352,14 +317,9 @@ class _EstimateScreenState extends State<EstimateScreen> {
                   4: const pw.FlexColumnWidth(1.3),
                 },
               ),
-
               pw.SizedBox(height: 20),
-
-              // Подвал
               pw.Divider(),
-
               pw.SizedBox(height: 8),
-
               pw.Text(
                 'Документ сформирован в Brivora',
                 style: pw.TextStyle(
