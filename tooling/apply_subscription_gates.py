@@ -34,10 +34,63 @@ replace_once(
     "import '../../../../l10n/app_localizations.dart';\nimport 'package:provider/provider.dart';\n\nimport '../../../../core/routes/app_routes.dart';\n",
     "import '../../../../l10n/app_localizations.dart';\nimport 'package:provider/provider.dart';\n\nimport '../../../../core/routes/app_routes.dart';\nimport '../../../../core/services/subscription_service.dart';\n",
 )
+# Fix the first version of this patch if it was already applied with the
+# wrong ProjectsProvider API (getProjectCountByStatus takes no arguments).
+replace_once(
+    projects,
+    "            final activeProjects =\n                provider.getProjectCountByStatus(ProjectStatus.active);",
+    "            final activeProjects =\n                provider.getProjectCountByStatus()[ProjectStatus.active] ?? 0;",
+)
 replace_once(
     projects,
     "          onCreateProject: (title, description) async {\n            await context.read<ProjectsProvider>().createProject(\n              title,\n              description: description,\n            );\n",
-    "          onCreateProject: (title, description) async {\n            final provider = context.read<ProjectsProvider>();\n            final activeProjects =\n                provider.getProjectCountByStatus(ProjectStatus.active);\n            final canCreate = await SubscriptionService.instance\n                .canCreateProject(activeProjects);\n\n            if (!canCreate) {\n              if (!mounted) return;\n              Navigator.of(context).pop();\n              await Navigator.pushNamed(context, AppRoutes.subscription);\n              return;\n            }\n\n            await provider.createProject(\n              title,\n              description: description,\n            );\n",
+    "          onCreateProject: (title, description) async {\n            final provider = context.read<ProjectsProvider>();\n            final activeProjects =\n                provider.getProjectCountByStatus()[ProjectStatus.active] ?? 0;\n            final canCreate = await SubscriptionService.instance\n                .canCreateProject(activeProjects);\n\n            if (!canCreate) {\n              if (!mounted) return;\n              Navigator.of(context).pop();\n              await Navigator.pushNamed(context, AppRoutes.subscription);\n              return;\n            }\n\n            await provider.createProject(\n              title,\n              description: description,\n            );\n",
 )
 
-print("Subscription gates applied: AI + project creation")
+# Photos: Free users have up to five photos per project. Gallery selection is
+# capped to the remaining slots; when no slots remain, open the existing
+# subscription screen. Pro users are unrestricted.
+photos = ROOT / "lib/features/photos/presentation/screens/photos_screen.dart"
+replace_once(
+    photos,
+    "import '../../../projects/data/repositories/project_repository.dart';\n",
+    "import '../../../projects/data/repositories/project_repository.dart';\nimport '../../../../core/routes/app_routes.dart';\nimport '../../../../core/services/subscription_service.dart';\n",
+)
+replace_once(
+    photos,
+    "                      onTap: () async {\n                        Navigator.pop(context);\n\n                        await provider.uploadPhoto(projectId);\n                      },",
+    "                      onTap: () async {\n                        Navigator.pop(context);\n\n                        final photos = await provider.getPhotos(projectId).first;\n                        final isPro = await SubscriptionService.instance.isPro();\n\n                        if (!isPro && photos.length >= SubscriptionService.instance.photoLimit) {\n                          if (!context.mounted) return;\n                          await Navigator.pushNamed(context, AppRoutes.subscription);\n                          return;\n                        }\n\n                        final remaining = isPro\n                            ? null\n                            : SubscriptionService.instance.photoLimit - photos.length;\n                        await provider.uploadPhoto(projectId, maxPhotos: remaining);\n                      },",
+)
+replace_once(
+    photos,
+    "                      onTap: () async {\n                        Navigator.pop(context);\n\n                        await provider.uploadFromCamera(projectId);\n                      },",
+    "                      onTap: () async {\n                        Navigator.pop(context);\n\n                        final photos = await provider.getPhotos(projectId).first;\n                        final isPro = await SubscriptionService.instance.isPro();\n\n                        if (!isPro && photos.length >= SubscriptionService.instance.photoLimit) {\n                          if (!context.mounted) return;\n                          await Navigator.pushNamed(context, AppRoutes.subscription);\n                          return;\n                        }\n\n                        await provider.uploadFromCamera(projectId);\n                      },",
+)
+
+# Provider/repository support the gallery cap without changing the existing
+# public behavior for Pro users.
+provider = ROOT / "lib/features/photos/presentation/providers/photos_provider.dart"
+replace_once(
+    provider,
+    "  Future<void> uploadPhoto(String projectId) async {",
+    "  Future<void> uploadPhoto(String projectId, {int? maxPhotos}) async {",
+)
+replace_once(
+    provider,
+    "      await _repository.pickAndUploadPhoto(projectId);",
+    "      await _repository.pickAndUploadPhoto(projectId, maxPhotos: maxPhotos);",
+)
+
+repository = ROOT / "lib/features/photos/data/repositories/photo_repository.dart"
+replace_once(
+    repository,
+    "  Future<void> pickAndUploadPhoto(String projectId) async {",
+    "  Future<void> pickAndUploadPhoto(String projectId, {int? maxPhotos}) async {",
+)
+replace_once(
+    repository,
+    "    // Все выбранные фотографии загружаются параллельно.\n    await Future.wait(\n      pickedFiles.map(\n        (picked) => _uploadFile(File(picked.path), projectId, user.uid),\n      ),\n    );",
+    "    final filesToUpload = maxPhotos == null\n        ? pickedFiles\n        : pickedFiles.take(maxPhotos).toList();\n\n    // Все выбранные фотографии загружаются параллельно.\n    await Future.wait(\n      filesToUpload.map(\n        (picked) => _uploadFile(File(picked.path), projectId, user.uid),\n      ),\n    );",
+)
+
+print("Subscription gates applied: AI + projects + photos")
