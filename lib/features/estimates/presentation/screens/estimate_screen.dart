@@ -10,7 +10,6 @@ import '../widgets/add_estimate_item_dialog.dart';
 import '../widgets/estimate_category_section.dart';
 import '../widgets/estimate_summary_card.dart';
 import '../../../projects/domain/models/project.dart';
-import '../../../../core/routes/app_routes.dart';
 import '../../../../core/services/subscription_service.dart';
 
 class EstimateScreen extends StatefulWidget {
@@ -236,13 +235,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
   Future<void> _exportToPdf(EstimateProvider provider) async {
     try {
       final isPro = await SubscriptionService.instance.isPro();
-
-      if (!isPro) {
-        if (!mounted) return;
-        await Navigator.pushNamed(context, AppRoutes.subscription);
-        return;
-      }
-
       final pdf = pw.Document();
 
       final regularFont = await PdfGoogleFonts.notoSansRegular();
@@ -254,6 +246,32 @@ class _EstimateScreenState extends State<EstimateScreen> {
           pageFormat: PdfPageFormat.a4,
           theme: pdfTheme,
           margin: const pw.EdgeInsets.all(32),
+          footer: (context) {
+            if (isPro) {
+              return pw.SizedBox();
+            }
+
+            return pw.Center(
+              child: pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+                ),
+                child: pw.Text(
+                  'BRIVORA • БЕСПЛАТНАЯ ВЕРСИЯ',
+                  style: pw.TextStyle(
+                    font: regularFont,
+                    fontSize: 7,
+                    color: PdfColors.grey500,
+                  ),
+                ),
+              ),
+            );
+          },
           build: (context) {
             return [
               pw.Text(
