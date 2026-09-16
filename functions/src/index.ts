@@ -35,6 +35,15 @@ export const brivoraAI = onCall(
       );
     }
 
+    const subscription = await getSubscription(request.auth.uid);
+
+    if (!isProSubscription(subscription)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Функция AI доступна только пользователям с активной Pro-подпиской.",
+      );
+    }
+
     const message = request.data?.message;
 
     if (
