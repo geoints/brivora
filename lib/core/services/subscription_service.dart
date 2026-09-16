@@ -11,6 +11,14 @@ class SubscriptionService {
       FirebaseFunctions.instanceFor(region: 'europe-west1')
           .httpsCallable('getSubscriptionStatus');
 
+  final HttpsCallable _createPaymentOrderCallable =
+      FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('createPaymentOrderCallable');
+
+  final HttpsCallable _getPaymentOrderStatusCallable =
+      FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('getPaymentOrderStatus');
+
   static const int freeProjectLimit = 2;
   static const int freePhotoLimit = 5;
 
@@ -62,6 +70,46 @@ class SubscriptionService {
   }
 
   Future<void> refreshStatus() => _fetchStatus(force: true);
+
+  Future<String> createPaymentOrder({required String plan}) async {
+    if (plan != 'monthly' && plan != 'yearly') {
+      throw ArgumentError('Invalid subscription plan.');
+    }
+
+    final result = await _createPaymentOrderCallable.call({
+      'plan': plan,
+    });
+
+    final data = result.data;
+
+    if (data is! Map || data['success'] != true) {
+      throw StateError('Не удалось создать платёж.');
+    }
+
+    final orderId = data['orderId'];
+
+    if (orderId is! String || orderId.isEmpty) {
+      throw StateError('Сервер не вернул идентификатор платежа.');
+    }
+
+    return orderId;
+  }
+
+  Future<Map<String, dynamic>> getPaymentOrderStatus(
+    String orderId,
+  ) async {
+    final result = await _getPaymentOrderStatusCallable.call({
+      'orderId': orderId,
+    });
+
+    final data = result.data;
+
+    if (data is! Map) {
+      throw StateError('Не удалось получить статус платежа.');
+    }
+
+    return Map<String, dynamic>.from(data);
+  }
 
   int get projectLimit => freeProjectLimit;
 
