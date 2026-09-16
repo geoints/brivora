@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/subscription_service.dart';
+
 enum SubscriptionPlan { free, monthly, annual }
 
 enum SubscriptionCtaState { normal, pressed, loading, disabled }
@@ -11,7 +13,8 @@ class SubscriptionScreen extends StatefulWidget {
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends State<SubscriptionScreen> {
+class _SubscriptionScreenState extends State<SubscriptionScreen>
+    with WidgetsBindingObserver {
   SubscriptionPlan _selectedPlan = SubscriptionPlan.annual;
   SubscriptionCtaState _ctaState = SubscriptionCtaState.normal;
 
@@ -59,6 +62,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Color get _success {
     return const Color(0xFF22C55E);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshSubscriptionStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshSubscriptionStatus();
+    }
+  }
+
+  Future<void> _refreshSubscriptionStatus() async {
+    await SubscriptionService.instance.refreshStatus();
   }
 
   @override
@@ -758,13 +785,10 @@ class _SelectionIndicator extends StatelessWidget {
         color: selected ? primaryColor : Colors.transparent,
         border: Border.all(
           color: selected ? primaryColor : borderColor,
-          width: selected ? 2 : 1.7,
         ),
       ),
       child: selected
-          ? const Center(
-              child: Icon(Icons.check_rounded, size: 14, color: Colors.white),
-            )
+          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
           : null,
     );
   }
@@ -785,7 +809,7 @@ class _CardDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      color: active ? primaryColor.withValues(alpha: 0.18) : borderColor,
+      color: active ? primaryColor.withValues(alpha: 0.24) : borderColor,
     );
   }
 }
@@ -799,53 +823,25 @@ class _Feature extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-
-    final success = const Color(0xFF22C55E);
-
-    final iconBackground = available
-        ? success.withValues(alpha: dark ? 0.13 : 0.10)
-        : dark
-        ? const Color(0xFF334155)
-        : const Color(0xFFE2E8F0);
-
-    final iconColor = available
-        ? success
-        : dark
-        ? const Color(0xFF64748B)
-        : const Color(0xFF94A3B8);
-
-    final textColor = available
-        ? dark
-              ? const Color(0xFFCBD5E1)
-              : const Color(0xFF475569)
-        : dark
-        ? const Color(0xFF64748B)
-        : const Color(0xFF94A3B8);
+    final primary = dark ? const Color(0xFF3B82F6) : const Color(0xFF2563EB);
+    final muted = dark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final textColor = dark ? const Color(0xFFE2E8F0) : const Color(0xFF334155);
 
     return Row(
       children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: iconBackground,
-          ),
-          child: Icon(
-            available ? Icons.check_rounded : Icons.remove_rounded,
-            size: 13,
-            color: iconColor,
-          ),
+        Icon(
+          available ? Icons.check_rounded : Icons.close_rounded,
+          size: 18,
+          color: available ? primary : muted,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
-              color: textColor,
+              color: available ? textColor : muted,
               fontSize: 13.5,
-              height: 1.35,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
