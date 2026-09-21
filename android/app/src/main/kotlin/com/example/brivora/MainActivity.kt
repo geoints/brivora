@@ -11,6 +11,7 @@ import java.io.File
 
 class MainActivity : FlutterActivity() {
     private val channelName = "brivora/pdf_share"
+    private val fileProviderAuthority = "com.example.brivora.fileprovider"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -49,7 +50,7 @@ class MainActivity : FlutterActivity() {
 
                     val uri: Uri = FileProvider.getUriForFile(
                         this,
-                        "${BuildConfig.APPLICATION_ID}.fileprovider",
+                        fileProviderAuthority,
                         pdfFile
                     )
 
