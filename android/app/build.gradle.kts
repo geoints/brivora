@@ -42,6 +42,8 @@ kotlin {
 }
 
 dependencies {
+    implementation("androidx.core:core:1.19.0")
+
     // Required by flutter_local_notifications
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
