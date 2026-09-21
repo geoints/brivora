@@ -42,7 +42,9 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.core:core:1.19.0")
+    // FileProvider is used by Brivora to securely share generated PDF estimates.
+    // Keep this on a version compatible with the current Flutter/Android compile SDK.
+    implementation("androidx.core:core:1.16.0")
 
     // Required by flutter_local_notifications
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
