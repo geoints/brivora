@@ -16,6 +16,7 @@ service firebase.storage {
       allow write: if isOwner(userId)
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(userId);
 
       function isOwner(id) {
         return signedIn() && id == request.auth.uid;
