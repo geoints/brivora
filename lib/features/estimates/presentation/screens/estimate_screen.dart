@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/models/estimate_item.dart';
 import '../providers/estimate_provider.dart';
@@ -89,6 +90,8 @@ class _EstimateScreenState extends State<EstimateScreen> {
               children: [
                 EstimateSummaryCard(provider: provider),
                 const SizedBox(height: 16),
+                _buildShareButtons(provider),
+                const SizedBox(height: 20),
                 _buildCategoryFilters(provider),
                 const SizedBox(height: 16),
                 ...EstimateItem.categories.map((category) {
@@ -122,6 +125,42 @@ class _EstimateScreenState extends State<EstimateScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildShareButtons(EstimateProvider provider) {
+    final enabled = provider.items.isNotEmpty;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Отправить смету', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: enabled ? () => _sharePdfTo('whatsapp', provider) : null,
+                    icon: const Icon(Icons.chat),
+                    label: const Text('WhatsApp'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: enabled ? () => _sharePdfTo('telegram', provider) : null,
+                    icon: const Icon(Icons.send),
+                    label: const Text('Telegram'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -232,138 +271,136 @@ class _EstimateScreenState extends State<EstimateScreen> {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
-  Future<void> _exportToPdf(EstimateProvider provider) async {
+  Future<Uint8List> _buildPdf(EstimateProvider provider) async {
+    final isPro = await SubscriptionService.instance.isPro();
+    final pdf = pw.Document();
+
+    final regularFont = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
+    final pdfTheme = pw.ThemeData.withFont(base: regularFont, bold: boldFont);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        theme: pdfTheme,
+        margin: const pw.EdgeInsets.all(32),
+        footer: (context) {
+          if (isPro) return pw.SizedBox();
+
+          return pw.Center(
+            child: pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+              ),
+              child: pw.Text(
+                'BRIVORA • БЕСПЛАТНАЯ ВЕРСИЯ',
+                style: pw.TextStyle(font: regularFont, fontSize: 7, color: PdfColors.grey500),
+              ),
+            ),
+          );
+        },
+        build: (context) => [
+          pw.Text(
+            'Смета проекта: ${widget.project.title}',
+            style: pw.TextStyle(font: boldFont, fontSize: 24),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text('Дата: ${_formatDate(DateTime.now())}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.SizedBox(height: 20),
+          pw.Text(
+            'Общая стоимость: ${EstimateItem.formatMoney(provider.grandTotal)}',
+            style: pw.TextStyle(font: boldFont, fontSize: 17),
+          ),
+          pw.SizedBox(height: 14),
+          pw.Text('Материалы: ${EstimateItem.formatMoney(provider.totalMaterials)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.Text('Работа: ${EstimateItem.formatMoney(provider.totalLabor)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.Text('Доставка: ${EstimateItem.formatMoney(provider.totalDelivery)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.Text('Инструменты: ${EstimateItem.formatMoney(provider.totalTools)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.Text('Прочее: ${EstimateItem.formatMoney(provider.totalOther)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
+          pw.SizedBox(height: 20),
+          pw.Table.fromTextArray(
+            headers: ['Название', 'Кол-во', 'Ед.', 'Цена', 'Сумма'],
+            data: provider.items.map((item) => [
+              item.name,
+              item.quantity.toStringAsFixed(2),
+              item.unit,
+              EstimateItem.formatMoney(item.unitPrice),
+              EstimateItem.formatMoney(item.totalPrice),
+            ]).toList(),
+            headerStyle: pw.TextStyle(font: boldFont, fontSize: 10),
+            cellStyle: pw.TextStyle(font: regularFont, fontSize: 9),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+            cellAlignment: pw.Alignment.centerLeft,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(3),
+              1: const pw.FlexColumnWidth(1),
+              2: const pw.FlexColumnWidth(1),
+              3: const pw.FlexColumnWidth(1.3),
+              4: const pw.FlexColumnWidth(1.3),
+            },
+          ),
+          pw.SizedBox(height: 20),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'Документ сформирован в Brivora',
+            style: pw.TextStyle(font: regularFont, fontSize: 9, color: PdfColors.grey700),
+          ),
+        ],
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  Future<void> _sharePdfTo(String target, EstimateProvider provider) async {
     try {
-      final isPro = await SubscriptionService.instance.isPro();
-      final pdf = pw.Document();
-
-      final regularFont = await PdfGoogleFonts.notoSansRegular();
-      final boldFont = await PdfGoogleFonts.notoSansBold();
-      final pdfTheme = pw.ThemeData.withFont(base: regularFont, bold: boldFont);
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          theme: pdfTheme,
-          margin: const pw.EdgeInsets.all(32),
-          footer: (context) {
-            if (isPro) {
-              return pw.SizedBox();
-            }
-
-            return pw.Center(
-              child: pw.Container(
-                padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
-                ),
-                child: pw.Text(
-                  'BRIVORA • БЕСПЛАТНАЯ ВЕРСИЯ',
-                  style: pw.TextStyle(
-                    font: regularFont,
-                    fontSize: 7,
-                    color: PdfColors.grey500,
-                  ),
-                ),
-              ),
-            );
-          },
-          build: (context) {
-            return [
-              pw.Text(
-                'Смета проекта: ${widget.project.title}',
-                style: pw.TextStyle(font: boldFont, fontSize: 24),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text(
-                'Дата: ${_formatDate(DateTime.now())}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Общая стоимость: ${EstimateItem.formatMoney(provider.grandTotal)}',
-                style: pw.TextStyle(font: boldFont, fontSize: 17),
-              ),
-              pw.SizedBox(height: 14),
-              pw.Text(
-                'Материалы: ${EstimateItem.formatMoney(provider.totalMaterials)}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.Text(
-                'Работа: ${EstimateItem.formatMoney(provider.totalLabor)}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.Text(
-                'Доставка: ${EstimateItem.formatMoney(provider.totalDelivery)}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.Text(
-                'Инструменты: ${EstimateItem.formatMoney(provider.totalTools)}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.Text(
-                'Прочее: ${EstimateItem.formatMoney(provider.totalOther)}',
-                style: pw.TextStyle(font: regularFont, fontSize: 11),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Table.fromTextArray(
-                headers: ['Название', 'Кол-во', 'Ед.', 'Цена', 'Сумма'],
-                data: provider.items.map((item) {
-                  return [
-                    item.name,
-                    item.quantity.toStringAsFixed(2),
-                    item.unit,
-                    EstimateItem.formatMoney(item.unitPrice),
-                    EstimateItem.formatMoney(item.totalPrice),
-                  ];
-                }).toList(),
-                headerStyle: pw.TextStyle(font: boldFont, fontSize: 10),
-                cellStyle: pw.TextStyle(font: regularFont, fontSize: 9),
-                headerDecoration: const pw.BoxDecoration(
-                  color: PdfColors.grey300,
-                ),
-                cellAlignment: pw.Alignment.centerLeft,
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(3),
-                  1: const pw.FlexColumnWidth(1),
-                  2: const pw.FlexColumnWidth(1),
-                  3: const pw.FlexColumnWidth(1.3),
-                  4: const pw.FlexColumnWidth(1.3),
-                },
-              ),
-              pw.SizedBox(height: 20),
-              pw.Divider(),
-              pw.SizedBox(height: 8),
-              pw.Text(
-                'Документ сформирован в Brivora',
-                style: pw.TextStyle(
-                  font: regularFont,
-                  fontSize: 9,
-                  color: PdfColors.grey700,
-                ),
-              ),
-            ];
-          },
-        ),
-      );
-
+      final bytes = await _buildPdf(provider);
       final safeProjectName = widget.project.title
           .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
           .replaceAll(' ', '_');
-
       final fileName = 'smeta_$safeProjectName.pdf';
 
-      await Printing.sharePdf(bytes: await pdf.save(), filename: fileName);
+      await const MethodChannel('brivora/pdf_share').invokeMethod<void>(
+        'sharePdfToApp',
+        {
+          'target': target,
+          'fileName': fileName,
+          'bytes': bytes,
+        },
+      );
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      final message = e.code == 'APP_NOT_INSTALLED'
+          ? target == 'whatsapp'
+              ? 'WhatsApp не установлен на устройстве.'
+              : 'Telegram не установлен на устройстве.'
+          : 'Не удалось отправить PDF: ${e.message ?? e.code}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось отправить PDF: $e')),
+      );
+    }
+  }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Не удалось создать PDF: $e')));
+  Future<void> _exportToPdf(EstimateProvider provider) async {
+    try {
+      final bytes = await _buildPdf(provider);
+      final safeProjectName = widget.project.title
+          .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+          .replaceAll(' ', '_');
+      final fileName = 'smeta_$safeProjectName.pdf';
+
+      await Printing.sharePdf(bytes: bytes, filename: fileName);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось создать PDF: $e')),
+      );
     }
   }
 }
