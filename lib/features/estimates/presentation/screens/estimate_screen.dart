@@ -14,6 +14,7 @@ import '../widgets/estimate_category_section.dart';
 import '../widgets/estimate_summary_card.dart';
 import '../../../projects/domain/models/project.dart';
 import '../../../../core/services/subscription_service.dart';
+import '../../../../core/services/pdf_share_service.dart';
 
 class EstimateScreen extends StatefulWidget {
   final Project project;
@@ -365,13 +366,10 @@ class _EstimateScreenState extends State<EstimateScreen> {
           .replaceAll(' ', '_');
       final fileName = 'smeta_$safeProjectName.pdf';
 
-      await const MethodChannel('brivora/pdf_share').invokeMethod<void>(
-        'sharePdfToApp',
-        {
-          'target': target,
-          'fileName': fileName,
-          'bytes': bytes,
-        },
+      await PdfShareService.shareToApp(
+        target: target,
+        fileName: fileName,
+        bytes: bytes,
       );
     } on PlatformException catch (e) {
       if (!mounted) return;
