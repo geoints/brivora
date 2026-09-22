@@ -17,7 +17,7 @@ class ClientProvider extends ChangeNotifier {
   String? get projectId => _projectId;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get hasClient => _client != null;
+  bool get hasClient => client != null;
 
   Future<void> loadClient(String projectId) async {
     // This provider is shared by all project screens, so never keep the
