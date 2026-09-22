@@ -11,6 +11,7 @@ import '../features/notes/presentation/providers/notes_provider.dart';
 import '../features/photos/presentation/providers/photos_provider.dart';
 import '../features/projects/presentation/providers/projects_provider.dart';
 import '../features/projects/presentation/providers/tasks_provider.dart';
+import '../features/project_changes/presentation/providers/project_change_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'theme.dart';
 import 'theme_controller.dart';
@@ -32,6 +33,7 @@ class BrivoraApp extends StatelessWidget {
           create: (_) => ProjectsProvider(),
         ),
         ChangeNotifierProvider<TasksProvider>(create: (_) => TasksProvider()),
+        ChangeNotifierProvider<ProjectChangeProvider>(create: (_) => ProjectChangeProvider()),
         ChangeNotifierProvider<NotesProvider>(create: (_) => NotesProvider()),
         ChangeNotifierProvider<PhotosProvider>(create: (_) => PhotosProvider()),
         ChangeNotifierProvider<EstimateProvider>(
