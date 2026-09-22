@@ -635,29 +635,49 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                   color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: colorScheme.primaryContainer,
-                    child: Icon(
-                      Icons.person_add_outlined,
-                      color: colorScheme.onPrimaryContainer,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => _showClientDialog(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: colorScheme.primaryContainer,
+                          child: Icon(
+                            Icons.person_add_outlined,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Клиент не добавлен',
+                                style: TextStyle(color: clientTextColor),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Добавьте данные заказчика',
+                                style: TextStyle(color: clientMutedColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: clientMutedColor,
+                        ),
+                      ],
                     ),
                   ),
-                  title: Text(
-                    'Клиент не добавлен',
-                    style: TextStyle(color: clientTextColor),
-                  ),
-                  subtitle: Text(
-                    'Добавьте данные заказчика',
-                    style: TextStyle(color: clientMutedColor),
-                  ),
-                  trailing: Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: clientMutedColor,
-                  ),
-                  onTap: () => _showClientDialog(context),
                 ),
               )
             else
@@ -749,7 +769,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                       ),
                     ],
                     const SizedBox(height: 14),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         if (client.phone.isNotEmpty)
                           OutlinedButton.icon(
@@ -757,7 +779,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                             icon: const Icon(Icons.call_outlined, size: 18),
                             label: const Text('Позвонить'),
                           ),
-                        const Spacer(),
                         TextButton.icon(
                           onPressed: () => _confirmDeleteClient(context),
                           icon: const Icon(Icons.delete_outline),
