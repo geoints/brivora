@@ -9,31 +9,56 @@ class ClientRepository {
     return _firestore.collection('clients');
   }
 
+  DocumentReference<Map<String, dynamic>> _clientDocument(String projectId) {
+    return _clientsCollection.doc(projectId);
+  }
+
   Future<Client?> getClientByProjectId(String projectId) async {
-    final snapshot = await _clientsCollection
+    final document = await _clientDocument(projectId).get();
+
+    if (document.exists) {
+      return Client.fromFirestore(document);
+    }
+
+    // Backward compatibility for clients created before projectId became
+    // the document id. If found, migrate the client to the canonical path.
+    final legacySnapshot = await _clientsCollection
         .where('projectId', isEqualTo: projectId)
         .limit(1)
         .get();
 
-    if (snapshot.docs.isEmpty) {
+    if (legacySnapshot.docs.isEmpty) {
       return null;
     }
 
-    return Client.fromFirestore(snapshot.docs.first);
+    final legacyClient = Client.fromFirestore(legacySnapshot.docs.first);
+    final migratedClient = legacyClient.copyWith(id: projectId);
+
+    await _clientDocument(projectId).set(migratedClient.toFirestore());
+
+    return migratedClient;
   }
 
   Future<Client> createClient(Client client) async {
-    final doc = await _clientsCollection.add(client.toFirestore());
-    return client.copyWith(id: doc.id);
+    final storedClient = client.copyWith(id: client.projectId);
+
+    await _clientDocument(client.projectId).set(storedClient.toFirestore());
+
+    return storedClient;
   }
 
   Future<void> updateClient(Client client) async {
-    await _clientsCollection.doc(client.id).update(
-      client.copyWith(updatedAt: DateTime.now()).toFirestore(),
+    final updatedClient = client.copyWith(
+      id: client.projectId,
+      updatedAt: DateTime.now(),
+    );
+
+    await _clientDocument(client.projectId).set(
+      updatedClient.toFirestore(),
     );
   }
 
-  Future<void> deleteClient(String clientId) async {
-    await _clientsCollection.doc(clientId).delete();
+  Future<void> deleteClient(String projectId) async {
+    await _clientDocument(projectId).delete();
   }
 }
