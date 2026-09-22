@@ -91,15 +91,13 @@ service cloud.firestore {
     }
 
     match /clients/{clientId} {
-      allow read: if ownsProject(clientId)
-        && resource.data.projectId == clientId;
-      allow create: if ownsProject(clientId)
-        && request.resource.data.projectId == clientId;
-      allow update: if ownsProject(clientId)
-        && resource.data.projectId == clientId
-        && request.resource.data.projectId == clientId;
-      allow delete: if ownsProject(clientId)
-        && resource.data.projectId == clientId;
+      // Legacy documents may use an auto-generated id. New documents use
+      // the project id as their document id.
+      allow read: if ownsProject(resource.data.projectId);
+      allow create: if ownsProject(request.resource.data.projectId);
+      allow update: if ownsProject(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if ownsProject(resource.data.projectId);
     }
 
     match /project_finances/{financeId} {
