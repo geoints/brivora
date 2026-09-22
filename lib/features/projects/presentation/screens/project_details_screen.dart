@@ -593,6 +593,20 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            if (clientProvider.error != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  'Не удалось загрузить клиента',
+                  style: TextStyle(color: colorScheme.onErrorContainer),
+                ),
+              ),
             if (clientProvider.isLoading && client == null)
               const Center(
                 child: Padding(
@@ -865,6 +879,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               return;
                             }
 
+                            await clientProvider.loadClient(project.id);
+                            if (!mounted) return;
                             Navigator.of(dialogContext).pop();
                           },
                     child: saving
