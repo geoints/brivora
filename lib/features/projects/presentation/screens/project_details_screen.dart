@@ -33,6 +33,7 @@ class ProjectDetailsScreen extends StatefulWidget {
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   late Project _project;
+  late final ClientProvider _clientProvider;
 
   Project get project => _project;
 
@@ -41,12 +42,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     super.initState();
 
     _project = widget.project;
+    _clientProvider = ClientProvider();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
       context.read<TasksProvider>().listenToProjectTasks(_project.id);
-      await context.read<ClientProvider>().loadClient(_project.id);
+      await _clientProvider.loadClient(_project.id);
       await context.read<ProjectFinanceProvider>().load(_project.id);
       context.read<ProjectChangeProvider>().listen(_project.id);
 
@@ -100,6 +102,12 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Не удалось обновить проект: $e')));
     }
+  }
+
+  @override
+  void dispose() {
+    _clientProvider.dispose();
+    super.dispose();
   }
 
   @override
@@ -533,7 +541,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   Widget _buildClientSection(BuildContext context) {
-    final clientProvider = context.watch<ClientProvider>();
+    final clientProvider = _clientProvider;
     final client = clientProvider.clientForProject(project.id);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -837,8 +845,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                             if (!formKey.currentState!.validate()) return;
                             setState(() => saving = true);
 
-                            final provider =
-                                this.context.read<ClientProvider>();
+                            final provider = _clientProvider;
                             if (client == null) {
                               await provider.createClient(
                                 projectId: project.id,
@@ -916,7 +923,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final provider = context.read<ClientProvider>();
+    final provider = _clientProvider;
     await provider.deleteClient(project.id);
 
     if (!mounted) return;
