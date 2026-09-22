@@ -879,7 +879,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               return;
                             }
 
-                            await clientProvider.loadClient(project.id);
+                            await provider.loadClient(project.id);
                             if (!mounted) return;
                             Navigator.of(dialogContext).pop();
                           },
