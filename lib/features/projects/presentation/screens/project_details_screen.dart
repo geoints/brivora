@@ -541,8 +541,21 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   Widget _buildClientSection(BuildContext context) {
-    final clientProvider = _clientProvider;
-    final client = clientProvider.clientForProject(project.id);
+    return ListenableBuilder(
+      listenable: _clientProvider,
+      builder: (context, _) {
+        final clientProvider = _clientProvider;
+        final client = clientProvider.clientForProject(project.id);
+        return _buildClientCard(context, clientProvider, client);
+      },
+    );
+  }
+
+  Widget _buildClientCard(
+    BuildContext context,
+    ClientProvider clientProvider,
+    Client? client,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final clientTextColor = colorScheme.onSurface;
