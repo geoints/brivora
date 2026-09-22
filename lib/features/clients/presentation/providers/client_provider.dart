@@ -6,13 +6,14 @@ import '../../domain/models/client.dart';
 class ClientProvider extends ChangeNotifier {
   final ClientRepository _repository = ClientRepository();
 
-  Client? _client;
+  final Map<String, Client?> _clientsByProject = <String, Client?>{};
   String? _projectId;
   int _loadRequest = 0;
   bool _isLoading = false;
   String? _error;
 
-  Client? get client => _client;
+  Client? get client => _projectId == null ? null : _clientsByProject[_projectId];
+  Client? clientForProject(String projectId) => _clientsByProject[projectId];
   String? get projectId => _projectId;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -23,7 +24,7 @@ class ClientProvider extends ChangeNotifier {
     // previous project's client while the new project is loading.
     final requestId = ++_loadRequest;
     _projectId = projectId;
-    _client = null;
+    _clientsByProject[projectId] = null;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -34,11 +35,11 @@ class ClientProvider extends ChangeNotifier {
       // Ignore a late response from a project that is no longer visible.
       if (requestId != _loadRequest || _projectId != projectId) return;
 
-      _client = loadedClient;
+      _clientsByProject[projectId] = loadedClient;
     } catch (e) {
       if (requestId != _loadRequest || _projectId != projectId) return;
 
-      _client = null;
+      _clientsByProject[projectId] = null;
       _error = e.toString();
     } finally {
       if (requestId == _loadRequest && _projectId == projectId) {
@@ -74,7 +75,7 @@ class ClientProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _client = await _repository.createClient(client);
+      _clientsByProject[projectId] = await _repository.createClient(client);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -110,7 +111,7 @@ class ClientProvider extends ChangeNotifier {
 
     try {
       await _repository.updateClient(updatedClient);
-      _client = updatedClient;
+      _clientsByProject[updatedClient.projectId] = updatedClient;
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -129,7 +130,7 @@ class ClientProvider extends ChangeNotifier {
 
     try {
       await _repository.deleteClient(current.id);
-      _client = null;
+      _clientsByProject[current.projectId] = null;
     } catch (e) {
       _error = e.toString();
     } finally {
