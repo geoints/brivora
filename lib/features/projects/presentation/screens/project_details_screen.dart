@@ -6,6 +6,8 @@ import '../../domain/models/project.dart';
 import '../../domain/models/task.dart';
 import '../../../clients/domain/models/client.dart';
 import '../../../clients/presentation/providers/client_provider.dart';
+import '../../../finances/domain/models/project_finance.dart';
+import '../../../finances/presentation/providers/project_finance_provider.dart';
 import '../../data/repositories/project_repository.dart';
 
 import '../providers/tasks_provider.dart';
@@ -42,6 +44,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
       context.read<TasksProvider>().listenToProjectTasks(_project.id);
       await context.read<ClientProvider>().loadClient(_project.id);
+      await context.read<ProjectFinanceProvider>().load(_project.id);
 
       try {
         await ProjectRepository().markProjectAsOpened(_project.id);
@@ -118,6 +121,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             const SizedBox(height: 20),
 
             _buildClientSection(context),
+
+            const SizedBox(height: 20),
+
+            _buildFinanceSection(context),
 
             const SizedBox(height: 20),
 
@@ -834,6 +841,155 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         SnackBar(content: Text('Не удалось позвонить: $e')),
       );
     }
+  }
+
+  Widget _buildFinanceSection(BuildContext context) {
+    final provider = context.watch<ProjectFinanceProvider>();
+    final finance = provider.finance;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (finance == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.payments_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Деньги', style: Theme.of(context).textTheme.titleMedium),
+                ),
+                IconButton(
+                  tooltip: 'Изменить',
+                  onPressed: provider.isLoading
+                      ? null
+                      : () => _showFinanceDialog(context, finance),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _financeRow(context, 'Плановая стоимость', finance.plannedAmount),
+            _financeRow(context, 'Получено', finance.receivedAmount),
+            _financeRow(context, 'Расходы', finance.expensesAmount),
+            const Divider(height: 24),
+            _financeRow(context, 'Остаток к получению', finance.remainingAmount,
+                emphasize: true),
+            _financeRow(context, 'Прибыль', finance.profitAmount, emphasize: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _financeRow(
+    BuildContext context,
+    String label,
+    double value, {
+    bool emphasize = false,
+  }) {
+    final style = Theme.of(context).textTheme.bodyLarge?.copyWith(
+      fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Text(ProjectFinance.formatMoney(value), style: style),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showFinanceDialog(
+    BuildContext context,
+    ProjectFinance finance,
+  ) async {
+    final planned = TextEditingController(text: finance.plannedAmount.round().toString());
+    final received = TextEditingController(text: finance.receivedAmount.round().toString());
+    final expenses = TextEditingController(text: finance.expensesAmount.round().toString());
+    final formKey = GlobalKey<FormState>();
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Деньги проекта'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _moneyField(planned, 'Плановая стоимость'),
+                  const SizedBox(height: 12),
+                  _moneyField(received, 'Получено'),
+                  const SizedBox(height: 12),
+                  _moneyField(expenses, 'Расходы'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                final provider = this.context.read<ProjectFinanceProvider>();
+                await provider.save(
+                  projectId: project.id,
+                  plannedAmount: _parseMoney(planned.text),
+                  receivedAmount: _parseMoney(received.text),
+                  expensesAmount: _parseMoney(expenses.text),
+                );
+                if (!mounted) return;
+                if (provider.error != null) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('Не удалось сохранить финансы: ${provider.error}')),
+                  );
+                  return;
+                }
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      planned.dispose();
+      received.dispose();
+      expenses.dispose();
+    }
+  }
+
+  TextFormField _moneyField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label, suffixText: '₸'),
+      validator: (value) {
+        if (_parseMoney(value ?? '') < 0) return 'Сумма не может быть отрицательной';
+        return null;
+      },
+    );
+  }
+
+  double _parseMoney(String value) {
+    return double.tryParse(value.replaceAll(' ', '').replaceAll(',', '.')) ?? 0;
   }
 
   Widget _buildProjectSections(BuildContext context) {
