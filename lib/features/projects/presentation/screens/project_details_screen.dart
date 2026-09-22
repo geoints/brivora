@@ -8,6 +8,8 @@ import '../../../clients/domain/models/client.dart';
 import '../../../clients/presentation/providers/client_provider.dart';
 import '../../../finances/domain/models/project_finance.dart';
 import '../../../finances/presentation/providers/project_finance_provider.dart';
+import '../../../project_changes/domain/models/project_change.dart';
+import '../../../project_changes/presentation/providers/project_change_provider.dart';
 import '../../data/repositories/project_repository.dart';
 
 import '../providers/tasks_provider.dart';
@@ -45,6 +47,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       context.read<TasksProvider>().listenToProjectTasks(_project.id);
       await context.read<ClientProvider>().loadClient(_project.id);
       await context.read<ProjectFinanceProvider>().load(_project.id);
+      context.read<ProjectChangeProvider>().listen(_project.id);
 
       try {
         await ProjectRepository().markProjectAsOpened(_project.id);
@@ -125,6 +128,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             const SizedBox(height: 20),
 
             _buildFinanceSection(context),
+
+            const SizedBox(height: 20),
+
+            _buildChangesSection(context),
 
             const SizedBox(height: 20),
 
@@ -990,6 +997,126 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   double _parseMoney(String value) {
     return double.tryParse(value.replaceAll(' ', '').replaceAll(',', '.')) ?? 0;
+  }
+
+  Widget _buildChangesSection(BuildContext context) {
+    final provider = context.watch<ProjectChangeProvider>();
+    final items = provider.items;
+    final finance = context.watch<ProjectFinanceProvider>().finance;
+    final approved = provider.approvedTotal;
+    final plan = (finance?.plannedAmount ?? 0) + approved;
+
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.change_circle_outlined),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Изменения проекта', style: Theme.of(context).textTheme.titleMedium)),
+            IconButton(onPressed: () => _showChangeDialog(context), icon: const Icon(Icons.add)),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: Text('План с одобренными изменениями', style: Theme.of(context).textTheme.bodyMedium)),
+            Text(ProjectFinance.formatMoney(plan), style: const TextStyle(fontWeight: FontWeight.w700)),
+          ]),
+          if (items.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 18), child: Text('Изменений пока нет'))
+          else
+            ...items.map((change) => _buildChangeTile(context, change)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildChangeTile(BuildContext context, ProjectChange change) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = switch (change.status) {
+      ProjectChangeStatus.approved => Colors.green,
+      ProjectChangeStatus.rejected => Colors.red,
+      ProjectChangeStatus.waiting => Colors.orange,
+    };
+    final label = switch (change.status) {
+      ProjectChangeStatus.approved => 'Одобрено',
+      ProjectChangeStatus.rejected => 'Отклонено',
+      ProjectChangeStatus.waiting => 'Ожидает',
+    };
+    return Card(
+      margin: const EdgeInsets.only(top: 10),
+      color: colorScheme.surfaceContainerHighest,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        title: Text(change.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (change.comment.isNotEmpty) Text(change.comment),
+          const SizedBox(height: 4),
+          Text(ProjectFinance.formatMoney(change.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+        ]),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) async {
+            final status = switch (value) {
+              'approved' => ProjectChangeStatus.approved,
+              'rejected' => ProjectChangeStatus.rejected,
+              _ => ProjectChangeStatus.waiting,
+            };
+            await context.read<ProjectChangeProvider>().save(change.copyWith(status: status));
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'approved', child: Text('Одобрить')),
+            PopupMenuItem(value: 'waiting', child: Text('Вернуть в ожидание')),
+            PopupMenuItem(value: 'rejected', child: Text('Отклонить')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showChangeDialog(BuildContext context) async {
+    final title = TextEditingController();
+    final amount = TextEditingController();
+    final comment = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Новое изменение'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextFormField(controller: title, decoration: const InputDecoration(labelText: 'Что изменилось?'), validator: (v) => v == null || v.trim().isEmpty ? 'Введите описание' : null),
+              const SizedBox(height: 12),
+              TextFormField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Сумма', suffixText: '₸'), validator: (v) => _parseMoney(v ?? '') <= 0 ? 'Введите сумму больше 0' : null),
+              const SizedBox(height: 12),
+              TextFormField(controller: comment, maxLines: 3, decoration: const InputDecoration(labelText: 'Комментарий')),
+            ])),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Отмена')),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                final now = DateTime.now();
+                final change = ProjectChange(id: '', projectId: project.id, title: title.text.trim(), amount: _parseMoney(amount.text), status: ProjectChangeStatus.waiting, comment: comment.text.trim(), createdAt: now, updatedAt: now);
+                await context.read<ProjectChangeProvider>().save(change);
+                if (mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Добавить'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      title.dispose();
+      amount.dispose();
+      comment.dispose();
+    }
   }
 
   Widget _buildProjectSections(BuildContext context) {
