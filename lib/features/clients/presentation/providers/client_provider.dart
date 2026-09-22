@@ -90,7 +90,7 @@ class ClientProvider extends ChangeNotifier {
     String email = '',
     String comment = '',
   }) async {
-    final current = _client;
+    final current = client;
     if (current == null) {
       _error = 'Клиент не загружен';
       notifyListeners();
