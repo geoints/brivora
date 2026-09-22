@@ -579,9 +579,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 if (client != null)
                   IconButton(
                     tooltip: 'Изменить',
-                    onPressed: clientProvider.isLoading
-                        ? null
-                        : () => _showClientDialog(context, client: client),
+                    onPressed: () => _showClientDialog(context, client: client),
                     icon: const Icon(Icons.edit_outlined),
                   ),
               ],
@@ -740,9 +738,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           ),
                         const Spacer(),
                         TextButton.icon(
-                          onPressed: clientProvider.isLoading
-                              ? null
-                              : () => _confirmDeleteClient(context),
+                          onPressed: () => _confirmDeleteClient(context),
                           icon: const Icon(Icons.delete_outline),
                           label: const Text('Удалить'),
                         ),
@@ -853,6 +849,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               );
                             } else {
                               await provider.updateClient(
+                                projectId: project.id,
                                 name: nameController.text,
                                 phone: phoneController.text,
                                 email: emailController.text,
@@ -873,7 +870,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               return;
                             }
 
-                            await provider.loadClient(project.id);
                             if (!mounted) return;
                             Navigator.of(dialogContext).pop();
                           },
@@ -921,7 +917,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     if (confirmed != true || !mounted) return;
 
     final provider = context.read<ClientProvider>();
-    await provider.deleteClient();
+    await provider.deleteClient(project.id);
 
     if (!mounted) return;
 
