@@ -6,6 +6,7 @@ import '../core/providers/locale_controller.dart';
 import '../core/routes/app_routes.dart';
 import '../features/clients/presentation/providers/client_provider.dart';
 import '../features/estimates/presentation/providers/estimate_provider.dart';
+import '../features/finances/presentation/providers/project_finance_provider.dart';
 import '../features/notes/presentation/providers/notes_provider.dart';
 import '../features/photos/presentation/providers/photos_provider.dart';
 import '../features/projects/presentation/providers/projects_provider.dart';
@@ -35,6 +36,9 @@ class BrivoraApp extends StatelessWidget {
         ChangeNotifierProvider<PhotosProvider>(create: (_) => PhotosProvider()),
         ChangeNotifierProvider<EstimateProvider>(
           create: (_) => EstimateProvider(),
+        ),
+        ChangeNotifierProvider<ProjectFinanceProvider>(
+          create: (_) => ProjectFinanceProvider(),
         ),
         ChangeNotifierProvider<ClientProvider>(
           create: (_) => ClientProvider(),
