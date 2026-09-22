@@ -853,6 +853,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   Widget _buildFinanceSection(BuildContext context) {
     final provider = context.watch<ProjectFinanceProvider>();
     final finance = provider.finance;
+    final changesProvider = context.watch<ProjectChangeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     if (finance == null) {
@@ -885,7 +886,11 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            _financeRow(context, 'Плановая стоимость', finance.plannedAmount),
+            _financeRow(
+              context,
+              'Плановая стоимость',
+              finance.plannedAmount + changesProvider.approvedTotal,
+            ),
             _financeRow(context, 'Получено', finance.receivedAmount),
             _financeRow(context, 'Расходы', finance.expensesAmount),
             const Divider(height: 24),
