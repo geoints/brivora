@@ -20,8 +20,6 @@ class ClientProvider extends ChangeNotifier {
   bool get hasClient => client != null;
 
   Future<void> loadClient(String projectId) async {
-    // This provider is shared by all project screens, so never keep the
-    // previous project's client while the new project is loading.
     final requestId = ++_loadRequest;
     _projectId = projectId;
     _clientsByProject[projectId] = null;
@@ -31,14 +29,10 @@ class ClientProvider extends ChangeNotifier {
 
     try {
       final loadedClient = await _repository.getClientByProjectId(projectId);
-
-      // Ignore a late response from a project that is no longer visible.
       if (requestId != _loadRequest || _projectId != projectId) return;
-
       _clientsByProject[projectId] = loadedClient;
     } catch (e) {
       if (requestId != _loadRequest || _projectId != projectId) return;
-
       _clientsByProject[projectId] = null;
       _error = e.toString();
     } finally {
@@ -57,8 +51,7 @@ class ClientProvider extends ChangeNotifier {
     String comment = '',
   }) async {
     final now = DateTime.now();
-
-    final client = Client(
+    final newClient = Client(
       id: '',
       projectId: projectId,
       name: name.trim(),
@@ -75,7 +68,8 @@ class ClientProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _clientsByProject[projectId] = await _repository.createClient(client);
+      final createdClient = await _repository.createClient(newClient);
+      _clientsByProject[projectId] = createdClient;
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -121,7 +115,7 @@ class ClientProvider extends ChangeNotifier {
   }
 
   Future<void> deleteClient() async {
-    final current = _client;
+    final current = client;
     if (current == null) return;
 
     _isLoading = true;
