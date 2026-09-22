@@ -543,23 +543,43 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     final client = clientProvider.client;
     final colorScheme = Theme.of(context).colorScheme;
 
+    final clientTextColor = colorScheme.onSurface;
+    final clientMutedColor = colorScheme.onSurfaceVariant;
+
     return Card(
       elevation: 0,
-      color: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.person_outline),
-                const SizedBox(width: 10),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.person_outline,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Клиент',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: clientTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (client != null)
@@ -572,86 +592,157 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             if (clientProvider.isLoading && client == null)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
-              ))
-            else if (client == null)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: colorScheme.primaryContainer,
-                  child: Icon(Icons.person_add_outlined,
-                      color: colorScheme.onPrimaryContainer),
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
                 ),
-                title: const Text('Клиент не добавлен'),
-                subtitle: const Text('Добавьте данные заказчика'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => _showClientDialog(context),
               )
-            else ...[
-              Text(
-                client.name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
+            else if (client == null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(18),
                 ),
-              ),
-              if (client.phone.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () => _callClient(client.phone),
-                  child: Row(
-                    children: [
-                      Icon(Icons.phone_outlined, size: 18,
-                          color: colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(client.phone)),
-                    ],
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.person_add_outlined,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
                   ),
+                  title: Text(
+                    'Клиент не добавлен',
+                    style: TextStyle(color: clientTextColor),
+                  ),
+                  subtitle: Text(
+                    'Добавьте данные заказчика',
+                    style: TextStyle(color: clientMutedColor),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: clientMutedColor,
+                  ),
+                  onTap: () => _showClientDialog(context),
                 ),
-              ],
-              if (client.email.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.email_outlined, size: 18,
-                        color: colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(client.email)),
+                    Text(
+                      client.name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: clientTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (client.phone.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _callClient(client.phone),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 4,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.phone_outlined,
+                                size: 20,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  client.phone,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: clientTextColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (client.email.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.email_outlined,
+                            size: 20,
+                            color: clientMutedColor,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              client.email,
+                              style: TextStyle(color: clientMutedColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (client.comment.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          client.comment,
+                          style: TextStyle(color: clientMutedColor),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        if (client.phone.isNotEmpty)
+                          OutlinedButton.icon(
+                            onPressed: () => _callClient(client.phone),
+                            icon: const Icon(Icons.call_outlined, size: 18),
+                            label: const Text('Позвонить'),
+                          ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: clientProvider.isLoading
+                              ? null
+                              : () => _confirmDeleteClient(context),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Удалить'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-              if (client.comment.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  client.comment,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (client.phone.isNotEmpty)
-                    OutlinedButton.icon(
-                      onPressed: () => _callClient(client.phone),
-                      icon: const Icon(Icons.call_outlined, size: 18),
-                      label: const Text('Позвонить'),
-                    ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: clientProvider.isLoading
-                        ? null
-                        : () => _confirmDeleteClient(context),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Удалить'),
-                  ),
-                ],
               ),
-            ],
           ],
         ),
       ),
