@@ -169,19 +169,12 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 ? CachedNetworkImage(
                     imageUrl: project.coverImageUrl!,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      }
-
-                      return Container(
-                        color: colorScheme.surfaceContainerHighest,
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildEmptyCover(context);
-                    },
+                    placeholder: (context, url) => Container(
+                      color: colorScheme.surfaceContainerHighest,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) =>
+                        _buildEmptyCover(context),
                   )
                 : _buildEmptyCover(context),
           ),
