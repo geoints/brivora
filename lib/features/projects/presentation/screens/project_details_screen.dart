@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -165,8 +166,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           SizedBox(
             height: 220,
             child: hasCover
-                ? Image.network(
-                    project.coverImageUrl!,
+                ? CachedNetworkImage(
+                    imageUrl: project.coverImageUrl!,
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) {
@@ -540,7 +541,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   Widget _buildClientSection(BuildContext context) {
     final clientProvider = context.watch<ClientProvider>();
-    final client = clientProvider.client;
+    final client = clientProvider.clientForProject(project.id);
     final colorScheme = Theme.of(context).colorScheme;
 
     final clientTextColor = colorScheme.onSurface;
@@ -603,7 +604,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  'Не удалось загрузить клиента',
+                  'Не удалось загрузить клиента: ${clientProvider.error}',
                   style: TextStyle(color: colorScheme.onErrorContainer),
                 ),
               ),
