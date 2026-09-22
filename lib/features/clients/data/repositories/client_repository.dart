@@ -14,35 +14,23 @@ class ClientRepository {
   }
 
   Future<Client?> getClientByProjectId(String projectId) async {
+    // One canonical document per project. This avoids Firestore query/rules
+    // mismatches and guarantees that the client belongs to this project.
     final document = await _clientDocument(projectId).get();
 
-    if (document.exists) {
-      return Client.fromFirestore(document);
-    }
-
-    // Backward compatibility for clients created before projectId became
-    // the document id. If found, migrate the client to the canonical path.
-    final legacySnapshot = await _clientsCollection
-        .where('projectId', isEqualTo: projectId)
-        .limit(1)
-        .get();
-
-    if (legacySnapshot.docs.isEmpty) {
+    if (!document.exists) {
       return null;
     }
 
-    final legacyClient = Client.fromFirestore(legacySnapshot.docs.first);
-    final migratedClient = legacyClient.copyWith(id: projectId);
-
-    await _clientDocument(projectId).set(migratedClient.toFirestore());
-
-    return migratedClient;
+    return Client.fromFirestore(document);
   }
 
   Future<Client> createClient(Client client) async {
     final storedClient = client.copyWith(id: client.projectId);
 
-    await _clientDocument(client.projectId).set(storedClient.toFirestore());
+    await _clientDocument(client.projectId).set(
+      storedClient.toFirestore(),
+    );
 
     return storedClient;
   }
