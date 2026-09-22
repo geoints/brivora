@@ -8,6 +8,7 @@ class ClientProvider extends ChangeNotifier {
 
   Client? _client;
   String? _projectId;
+  int _loadRequest = 0;
   bool _isLoading = false;
   String? _error;
 
@@ -20,6 +21,7 @@ class ClientProvider extends ChangeNotifier {
   Future<void> loadClient(String projectId) async {
     // This provider is shared by all project screens, so never keep the
     // previous project's client while the new project is loading.
+    final requestId = ++_loadRequest;
     _projectId = projectId;
     _client = null;
     _isLoading = true;
@@ -27,13 +29,22 @@ class ClientProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _client = await _repository.getClientByProjectId(projectId);
+      final loadedClient = await _repository.getClientByProjectId(projectId);
+
+      // Ignore a late response from a project that is no longer visible.
+      if (requestId != _loadRequest || _projectId != projectId) return;
+
+      _client = loadedClient;
     } catch (e) {
+      if (requestId != _loadRequest || _projectId != projectId) return;
+
       _client = null;
       _error = e.toString();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (requestId == _loadRequest && _projectId == projectId) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
