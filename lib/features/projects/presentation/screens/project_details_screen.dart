@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/models/project.dart';
 import '../../domain/models/task.dart';
+import '../../../clients/domain/models/client.dart';
+import '../../../clients/presentation/providers/client_provider.dart';
 import '../../data/repositories/project_repository.dart';
 
 import '../providers/tasks_provider.dart';
@@ -38,6 +41,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       if (!mounted) return;
 
       context.read<TasksProvider>().listenToProjectTasks(_project.id);
+      await context.read<ClientProvider>().loadClient(_project.id);
 
       try {
         await ProjectRepository().markProjectAsOpened(_project.id);
@@ -110,6 +114,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             const SizedBox(height: 20),
 
             _buildTaskSection(context),
+
+            const SizedBox(height: 20),
+
+            _buildClientSection(context),
 
             const SizedBox(height: 20),
 
@@ -514,6 +522,318 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     if (!mounted) return;
 
     await _reloadProject();
+  }
+
+  Widget _buildClientSection(BuildContext context) {
+    final clientProvider = context.watch<ClientProvider>();
+    final client = clientProvider.client;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person_outline),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Клиент',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (client != null)
+                  IconButton(
+                    tooltip: 'Изменить',
+                    onPressed: clientProvider.isLoading
+                        ? null
+                        : () => _showClientDialog(context, client: client),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (clientProvider.isLoading && client == null)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ))
+            else if (client == null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: colorScheme.primaryContainer,
+                  child: Icon(Icons.person_add_outlined,
+                      color: colorScheme.onPrimaryContainer),
+                ),
+                title: const Text('Клиент не добавлен'),
+                subtitle: const Text('Добавьте данные заказчика'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => _showClientDialog(context),
+              )
+            else ...[
+              Text(
+                client.name,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (client.phone.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => _callClient(client.phone),
+                  child: Row(
+                    children: [
+                      Icon(Icons.phone_outlined, size: 18,
+                          color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(client.phone)),
+                    ],
+                  ),
+                ),
+              ],
+              if (client.email.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.email_outlined, size: 18,
+                        color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(client.email)),
+                  ],
+                ),
+              ],
+              if (client.comment.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  client.comment,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (client.phone.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => _callClient(client.phone),
+                      icon: const Icon(Icons.call_outlined, size: 18),
+                      label: const Text('Позвонить'),
+                    ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: clientProvider.isLoading
+                        ? null
+                        : () => _confirmDeleteClient(context),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Удалить'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showClientDialog(
+    BuildContext context, {
+    Client? client,
+  }) async {
+    final nameController = TextEditingController(text: client?.name ?? '');
+    final phoneController = TextEditingController(text: client?.phone ?? '');
+    final emailController = TextEditingController(text: client?.email ?? '');
+    final commentController =
+        TextEditingController(text: client?.comment ?? '');
+
+    try {
+      final formKey = GlobalKey<FormState>();
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          bool saving = false;
+
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text(client == null ? 'Добавить клиента' : 'Изменить клиента'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: nameController,
+                          enabled: !saving,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Имя *',
+                          ),
+                          validator: (value) =>
+                              value == null || value.trim().isEmpty
+                              ? 'Введите имя клиента'
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: phoneController,
+                          enabled: !saving,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            labelText: 'Телефон',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: emailController,
+                          enabled: !saving,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: commentController,
+                          enabled: !saving,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'Комментарий',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Отмена'),
+                  ),
+                  FilledButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+                            setState(() => saving = true);
+
+                            final provider =
+                                this.context.read<ClientProvider>();
+                            if (client == null) {
+                              await provider.createClient(
+                                projectId: project.id,
+                                name: nameController.text,
+                                phone: phoneController.text,
+                                email: emailController.text,
+                                comment: commentController.text,
+                              );
+                            } else {
+                              await provider.updateClient(
+                                name: nameController.text,
+                                phone: phoneController.text,
+                                email: emailController.text,
+                                comment: commentController.text,
+                              );
+                            }
+
+                            if (!mounted) return;
+                            if (provider.error != null) {
+                              setState(() => saving = false);
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Не удалось сохранить клиента: ${provider.error}',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            Navigator.of(dialogContext).pop();
+                          },
+                    child: saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Сохранить'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      nameController.dispose();
+      phoneController.dispose();
+      emailController.dispose();
+      commentController.dispose();
+    }
+  }
+
+  Future<void> _confirmDeleteClient(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить клиента?'),
+        content: const Text('Данные клиента будут удалены из проекта.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<ClientProvider>();
+    await provider.deleteClient();
+
+    if (!mounted) return;
+
+    if (provider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось удалить клиента: ${provider.error}')),
+      );
+    }
+  }
+
+  Future<void> _callClient(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone.trim());
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть приложение телефона')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось позвонить: $e')),
+      );
+    }
   }
 
   Widget _buildProjectSections(BuildContext context) {
