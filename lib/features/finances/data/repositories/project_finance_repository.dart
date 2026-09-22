@@ -1,0 +1,3 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../domain/models/project_finance.dart';
+class ProjectFinanceRepository { final FirebaseFirestore _firestore=FirebaseFirestore.instance; CollectionReference<Map<String,dynamic>> get _collection=>_firestore.collection('project_finances'); Future<ProjectFinance?> getByProjectId(String projectId) async { final s=await _collection.where('projectId',isEqualTo:projectId).limit(1).get(); return s.docs.isEmpty?null:ProjectFinance.fromFirestore(s.docs.first); } Future<ProjectFinance> save(ProjectFinance f) async { final doc=f.id.isEmpty?_collection.doc():_collection.doc(f.id); final saved=f.copyWith(id:doc.id,updatedAt:DateTime.now()); await doc.set(saved.toFirestore()); return saved; }}
