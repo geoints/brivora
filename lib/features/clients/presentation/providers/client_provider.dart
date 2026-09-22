@@ -12,8 +12,11 @@ class ClientProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  Client? get client => _projectId == null ? null : _clientsByProject[_projectId];
+  Client? get client =>
+      _projectId == null ? null : _clientsByProject[_projectId];
+
   Client? clientForProject(String projectId) => _clientsByProject[projectId];
+
   String? get projectId => _projectId;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -22,17 +25,23 @@ class ClientProvider extends ChangeNotifier {
   Future<void> loadClient(String projectId) async {
     final requestId = ++_loadRequest;
     _projectId = projectId;
-    _clientsByProject[projectId] = null;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       final loadedClient = await _repository.getClientByProjectId(projectId);
-      if (requestId != _loadRequest || _projectId != projectId) return;
+
+      if (requestId != _loadRequest || _projectId != projectId) {
+        return;
+      }
+
       _clientsByProject[projectId] = loadedClient;
     } catch (e) {
-      if (requestId != _loadRequest || _projectId != projectId) return;
+      if (requestId != _loadRequest || _projectId != projectId) {
+        return;
+      }
+
       _clientsByProject[projectId] = null;
       _error = e.toString();
     } finally {
@@ -62,9 +71,9 @@ class ClientProvider extends ChangeNotifier {
       updatedAt: now,
     );
 
+    _projectId = projectId;
     _isLoading = true;
     _error = null;
-    _projectId = projectId;
     notifyListeners();
 
     try {
@@ -79,12 +88,14 @@ class ClientProvider extends ChangeNotifier {
   }
 
   Future<void> updateClient({
+    required String projectId,
     required String name,
     String phone = '',
     String email = '',
     String comment = '',
   }) async {
-    final current = client;
+    final current = _clientsByProject[projectId];
+
     if (current == null) {
       _error = 'Клиент не загружен';
       notifyListeners();
@@ -99,13 +110,14 @@ class ClientProvider extends ChangeNotifier {
       updatedAt: DateTime.now(),
     );
 
+    _projectId = projectId;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       await _repository.updateClient(updatedClient);
-      _clientsByProject[updatedClient.projectId] = updatedClient;
+      _clientsByProject[projectId] = updatedClient;
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -114,17 +126,18 @@ class ClientProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteClient() async {
-    final current = client;
+  Future<void> deleteClient(String projectId) async {
+    final current = _clientsByProject[projectId];
     if (current == null) return;
 
+    _projectId = projectId;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       await _repository.deleteClient(current.id);
-      _clientsByProject[current.projectId] = null;
+      _clientsByProject[projectId] = null;
     } catch (e) {
       _error = e.toString();
     } finally {
