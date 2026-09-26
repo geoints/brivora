@@ -6,6 +6,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../projects/data/repositories/task_repository.dart';
 import '../../../projects/domain/models/project.dart';
+import '../../../projects/domain/models/task.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
 
 class HomeTabScreen extends StatefulWidget {
@@ -89,6 +90,23 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                   const SizedBox(height: 12),
 
                   _buildQuickActions(context),
+
+                  const SizedBox(height: 28),
+
+                  FutureBuilder<List<Task>>(
+                    future: _taskRepository.getTasksForProjects(projectIds),
+                    builder: (context, snapshot) {
+                      final tasks = snapshot.data ?? const <Task>[];
+
+                      return _buildTodaySection(
+                        context,
+                        projects,
+                        tasks,
+                        isLoading: snapshot.connectionState ==
+                            ConnectionState.waiting,
+                      );
+                    },
+                  ),
 
                   const SizedBox(height: 28),
 
@@ -247,6 +265,169 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
             return cards[index];
           },
         ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TODAY
+  // ============================================================
+
+  Widget _buildTodaySection(
+    BuildContext context,
+    List<Project> projects,
+    List<Task> tasks, {
+    required bool isLoading,
+  }) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final todayTasks = tasks.where((task) {
+      if (task.status == TaskStatus.completed || task.deadline == null) {
+        return false;
+      }
+
+      final deadline = task.deadline!;
+      return !deadline.isBefore(startOfDay) && deadline.isBefore(endOfDay);
+    }).take(5).toList();
+
+    final overdueTasks = tasks.where((task) {
+      if (task.status == TaskStatus.completed || task.deadline == null) {
+        return false;
+      }
+
+      return task.deadline!.isBefore(startOfDay);
+    }).take(3).toList();
+
+    final attentionTasks = [...overdueTasks, ...todayTasks];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'На сегодня',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: colors.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (isLoading)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          )
+        else if (attentionTasks.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colors.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Нет просроченных задач и задач на сегодня.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...attentionTasks.map((task) {
+            final matching = projects.where((item) => item.id == task.projectId);
+            final projectTitle =
+                matching.isNotEmpty ? matching.first.title : 'Проект';
+
+            final overdue = task.deadline!.isBefore(startOfDay);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Material(
+                color: colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    if (matching.isEmpty) return;
+
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.projectDetails,
+                      arguments: matching.first,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: (overdue ? colors.error : colors.primary)
+                                .withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            overdue
+                                ? Icons.warning_amber_rounded
+                                : Icons.today_outlined,
+                            color: overdue ? colors.error : colors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                task.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                projectTitle +
+                                    ' · ' +
+                                    (overdue ? 'Просрочено' : 'Сегодня'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: overdue
+                                      ? colors.error
+                                      : colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
       ],
     );
   }
