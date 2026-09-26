@@ -141,14 +141,19 @@ class _EstimateScreenState extends State<EstimateScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Отправить смету', style: Theme.of(context).textTheme.titleMedium),
+            Text('Отправить клиенту', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'PDF-файл готовится автоматически',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: enabled ? () => _sharePdfTo('whatsapp', provider) : null,
-                    icon: const Icon(Icons.chat),
+                    icon: const Icon(Icons.chat_outlined),
                     label: const Text('WhatsApp'),
                   ),
                 ),
@@ -156,7 +161,7 @@ class _EstimateScreenState extends State<EstimateScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: enabled ? () => _sharePdfTo('telegram', provider) : null,
-                    icon: const Icon(Icons.send),
+                    icon: const Icon(Icons.send_outlined),
                     label: const Text('Telegram'),
                   ),
                 ),
