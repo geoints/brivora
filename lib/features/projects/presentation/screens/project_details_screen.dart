@@ -116,38 +116,130 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       appBar: ProjectDetailsAppBar(project: project),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateTaskDialog(context),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Добавить задачу'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: _reloadProject,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoCard(context),
+              const SizedBox(height: 16),
+              _buildTaskSection(context),
+              const SizedBox(height: 16),
+              _buildClientSection(context),
+              const SizedBox(height: 16),
+              _buildFinanceSection(context),
+              const SizedBox(height: 16),
+              _buildChangesSection(context),
+              const SizedBox(height: 16),
+              _buildProjectSections(context),
+              const SizedBox(height: 20),
+              _buildProjectQuickActions(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectQuickActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Инструменты', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        Row(
           children: [
-            _buildInfoCard(context),
-
-            const SizedBox(height: 20),
-
-            _buildTaskSection(context),
-
-            const SizedBox(height: 20),
-
-            _buildClientSection(context),
-
-            const SizedBox(height: 20),
-
-            _buildFinanceSection(context),
-
-            const SizedBox(height: 20),
-
-            _buildChangesSection(context),
-
-            const SizedBox(height: 20),
-
-            _buildProjectSections(context),
-
-            const SizedBox(height: 80),
+            Expanded(
+              child: _quickAction(
+                context,
+                Icons.receipt_long_outlined,
+                'Смета',
+                () => Navigator.pushNamed(context, AppRoutes.estimate, arguments: project),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _quickAction(
+                context,
+                Icons.calculate_outlined,
+                'Калькуляторы',
+                () => Navigator.pushNamed(context, AppRoutes.calculators, arguments: project),
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _quickAction(
+                context,
+                Icons.photo_library_outlined,
+                'Фото',
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PhotosScreen(projectId: project.id)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _quickAction(
+                context,
+                Icons.notes_outlined,
+                'Заметки',
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => NotesScreen(projectId: project.id)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _quickAction(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: colors.onPrimaryContainer),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
         ),
       ),
     );
