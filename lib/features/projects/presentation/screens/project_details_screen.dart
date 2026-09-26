@@ -136,8 +136,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               _buildFinanceSection(context),
               const SizedBox(height: 16),
               _buildChangesSection(context),
-              const SizedBox(height: 16),
-              _buildProjectSections(context),
               const SizedBox(height: 20),
               _buildProjectQuickActions(context),
             ],
@@ -151,7 +149,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Инструменты', style: Theme.of(context).textTheme.titleMedium),
+        Text('Основные инструменты', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -1354,89 +1352,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     }
   }
 
-  Widget _buildProjectSections(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Разделы проекта', style: Theme.of(context).textTheme.titleMedium),
-
-        const SizedBox(height: 12),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.note_alt),
-            title: const Text('Заметки'),
-            subtitle: const Text('Записи и важная информация проекта'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => NotesScreen(projectId: project.id),
-                ),
-              );
-            },
-          ),
-        ),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.photo),
-            title: const Text('Фото'),
-            subtitle: const Text('Фото проекта'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-            onTap: () async {
-              final result = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PhotosScreen(projectId: project.id),
-                ),
-              );
-
-              if (!mounted) return;
-
-              if (result == true) {
-                await _reloadProject();
-              }
-            },
-          ),
-        ),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.calculate),
-            title: const Text('Калькуляторы'),
-            subtitle: const Text('Расчёт материалов для проекта'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.calculators,
-                arguments: project,
-              );
-            },
-          ),
-        ),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.receipt_long),
-            title: const Text('Смета'),
-            subtitle: const Text('Материалы, работа и расходы'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.estimate,
-                arguments: project,
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /// Отдельный экран-диалог создания задачи.
 ///
