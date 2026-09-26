@@ -136,7 +136,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               _buildFinanceSection(context),
               const SizedBox(height: 16),
               _buildChangesSection(context),
-              const SizedBox(height: 16),
               const SizedBox(height: 20),
               _buildProjectQuickActions(context),
             ],
