@@ -70,6 +70,16 @@ class TasksProvider extends ChangeNotifier {
         );
   }
 
+  Future<void> stopListening() async {
+    await _subscription?.cancel();
+    _subscription = null;
+    _tasks = [];
+    _isLoading = false;
+    _error = null;
+    _filter = 'all';
+    notifyListeners();
+  }
+
   void updateTasks(List<Task> tasks, String projectId) {
     _tasks = _removeDuplicateTasks(tasks);
     notifyListeners();
