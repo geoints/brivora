@@ -650,7 +650,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return _CreateTaskDialog(projectId: project.id);
+        return CreateTaskDialog(projectId: project.id);
       },
     );
 
