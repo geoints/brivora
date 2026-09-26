@@ -128,6 +128,19 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant ProjectsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!oldWidget.autoOpenCreateDialog && widget.autoOpenCreateDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _openCreateProjectDialog();
+        widget.onAutoOpenHandled?.call();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
