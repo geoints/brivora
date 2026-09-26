@@ -1407,3 +1407,4 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       comment.dispose();
     }
   }
+}
