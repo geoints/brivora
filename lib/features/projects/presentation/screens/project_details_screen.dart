@@ -994,7 +994,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                             if (!formKey.currentState!.validate()) return;
                             setState(() => saving = true);
 
-                            final provider = _clientProvider;
+                            final provider = context.read<ClientProvider>();
                             if (client == null) {
                               await provider.createClient(
                                 projectId: project.id,
