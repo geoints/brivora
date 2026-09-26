@@ -665,6 +665,17 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     );
   }
 
+  Widget _buildClientSection(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _clientProvider,
+      builder: (context, _) {
+        final clientProvider = _clientProvider;
+        final client = clientProvider.clientForProject(project.id);
+        return _buildClientCard(context, clientProvider, client);
+      },
+    );
+  }
+
   Widget _buildClientCard(
     BuildContext context,
     ClientProvider clientProvider,
