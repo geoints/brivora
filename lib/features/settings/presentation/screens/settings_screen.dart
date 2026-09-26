@@ -17,12 +17,10 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   static const String _currencyKey = 'brivora_currency';
-  static const String _notificationsKey = 'brivora_notifications';
 
   static final Uri _telegramUri = Uri.parse('https://t.me/BrivoraAI_bot');
 
   String _currency = '₸';
-  bool _notificationsEnabled = true;
   bool _isLoading = true;
 
   @override
@@ -38,7 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _currency = preferences.getString(_currencyKey) ?? '₸';
-      _notificationsEnabled = preferences.getBool(_notificationsKey) ?? true;
       _isLoading = false;
     });
   }
@@ -52,18 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _currency = currency;
-    });
-  }
-
-  Future<void> _setNotifications(bool enabled) async {
-    final preferences = await SharedPreferences.getInstance();
-
-    await preferences.setBool(_notificationsKey, enabled);
-
-    if (!mounted) return;
-
-    setState(() {
-      _notificationsEnabled = enabled;
     });
   }
 
@@ -181,24 +166,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             const SizedBox(height: 28),
-
-            _buildSectionTitle(l10n.notifications, isDark),
-
-            const SizedBox(height: 10),
-
-            _buildSettingsCard(
-              children: [
-                _buildSwitchTile(
-                  icon: Icons.notifications_none_rounded,
-                  title: l10n.notifications,
-                  subtitle: localeController.isKazakh
-                      ? 'Жобалар, тапсырмалар және жүйелік хабарландырулар туралы еске салғыштар'
-                      : 'Напоминания по проектам, задачам и системные уведомления',
-                  value: _notificationsEnabled,
-                  onChanged: _setNotifications,
-                ),
-              ],
-            ),
 
             const SizedBox(height: 28),
 
