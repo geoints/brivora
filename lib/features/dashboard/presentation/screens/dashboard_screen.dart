@@ -14,6 +14,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  bool _openCreateProject = false;
 
 
   void _onNavItemTapped(int index) {
@@ -24,6 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _openCreateProjectFromHome() {
     setState(() {
       _selectedIndex = 1;
+      _openCreateProject = true;
     });
   }
 
@@ -68,7 +70,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onViewAllProjects: _goToProjectsTab,
           ),
           ProjectsScreen(
-            autoOpenCreateDialog: false,
+            autoOpenCreateDialog: _openCreateProject,
+            onAutoOpenHandled: () {
+              if (mounted && _openCreateProject) {
+                setState(() => _openCreateProject = false);
+              }
+            },
           ),
           const ProfileTabScreen(),
         ],
