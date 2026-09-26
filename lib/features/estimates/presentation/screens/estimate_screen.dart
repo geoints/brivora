@@ -13,7 +13,6 @@ import '../widgets/add_estimate_item_dialog.dart';
 import '../widgets/estimate_category_section.dart';
 import '../widgets/estimate_summary_card.dart';
 import '../../../projects/domain/models/project.dart';
-import '../../../../core/services/subscription_service.dart';
 import '../../../../core/services/pdf_share_service.dart';
 
 class EstimateScreen extends StatefulWidget {
@@ -280,7 +279,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
   }
 
   Future<Uint8List> _buildPdf(EstimateProvider provider) async {
-    final isPro = await SubscriptionService.instance.isPro();
     final pdf = pw.Document();
 
     final regularFont = await PdfGoogleFonts.notoSansRegular();
@@ -292,23 +290,6 @@ class _EstimateScreenState extends State<EstimateScreen> {
         pageFormat: PdfPageFormat.a4,
         theme: pdfTheme,
         margin: const pw.EdgeInsets.all(32),
-        footer: (context) {
-          if (isPro) return pw.SizedBox();
-
-          return pw.Center(
-            child: pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
-              ),
-              child: pw.Text(
-                'BRIVORA • БЕСПЛАТНАЯ ВЕРСИЯ',
-                style: pw.TextStyle(font: regularFont, fontSize: 7, color: PdfColors.grey500),
-              ),
-            ),
-          );
-        },
         build: (context) => [
           pw.Text(
             'Смета проекта: ${widget.project.title}',
@@ -328,7 +309,7 @@ class _EstimateScreenState extends State<EstimateScreen> {
           pw.Text('Инструменты: ${EstimateItem.formatMoney(provider.totalTools)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
           pw.Text('Прочее: ${EstimateItem.formatMoney(provider.totalOther)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
           pw.SizedBox(height: 20),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Название', 'Кол-во', 'Ед.', 'Цена', 'Сумма'],
             data: provider.items.map((item) => [
               item.name,
