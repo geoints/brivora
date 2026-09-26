@@ -407,6 +407,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     final tasks = tasksProvider.tasks;
 
+    final completedCount =
+        tasks.where((task) => task.status == TaskStatus.completed).length;
+    final activeCount = tasks.length - completedCount;
+
     return Card(
       elevation: 0,
       color: Theme.of(context).colorScheme.surface,
@@ -416,9 +420,29 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Задачи', style: Theme.of(context).textTheme.titleMedium),
-
-            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Задачи',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  '${completedCount}/${tasks.length}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(
+              value: tasks.isEmpty ? 0 : completedCount / tasks.length,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 12),
 
             Wrap(
               spacing: 8,
@@ -437,7 +461,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'Нет задач для этого проекта',
+                  'Пока нет задач. Добавьте первую задачу ниже.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
