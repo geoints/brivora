@@ -15,8 +15,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   bool _openCreateProject = false;
-
-
   void _onNavItemTapped(int index) {
     if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
@@ -52,16 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: false,
       ),
 
-      // IndexedStack НЕ уничтожает вкладки.
-      //
-      // Поэтому:
-      // Главная сохраняет свои данные
-      // Проекты сохраняют свои данные
-      // AI сохраняет своё состояние
-      // Профиль сохраняет аватар/имя/данные
-      //
-      // При переключении между вкладками ничего не
-      // загружается заново.
+      // IndexedStack сохраняет состояние основных вкладок.
       body: IndexedStack(
         index: _selectedIndex,
         children: [
