@@ -10,12 +10,21 @@ class CalculatorsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Калькуляторы')),
+      appBar: AppBar(title: const Text('Расчёт материалов')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                project == null
+                    ? 'Выберите нужный материал для расчёта.'
+                    : 'Расчёты можно использовать прямо для текущего проекта.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
             Card(
               child: InkWell(
                 onTap: () {
