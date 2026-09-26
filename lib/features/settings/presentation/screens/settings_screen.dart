@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/theme.dart';
 import '../../../../app/theme_controller.dart';
 import '../../../../core/providers/locale_controller.dart';
+import '../../../../core/routes/app_routes.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -50,6 +51,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _currency = currency;
     });
+  }
+
+  void _openSubscription() {
+    Navigator.of(context).pushNamed(AppRoutes.subscription);
   }
 
   void _showMessage(String message) {
@@ -123,6 +128,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
+            _buildProSubscriptionCard(localeController),
+
+            const SizedBox(height: 28),
+
             _buildSectionTitle(l10n.appearance, isDark),
 
             const SizedBox(height: 10),
@@ -268,6 +277,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildProSubscriptionCard(LocaleController localeController) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: _openSubscription,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? const [Color(0xFF172B4D), Color(0xFF1E3A68)]
+                  : const [Color(0xFFF0F6FF), Color(0xFFE7F0FF)],
+            ),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(
+                alpha: isDark ? 0.35 : 0.18,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: Colors.white,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Brivora',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'PRO',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        localeController.isKazakh
+                            ? 'Қосымша мүмкіндіктер'
+                            : 'Больше возможностей',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.65,
+                          ),
+                          fontSize: 12.5,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        localeController.isKazakh
+                            ? 'Тарифті көру'
+                            : 'Посмотреть тарифы',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
