@@ -17,7 +17,23 @@ class PhotosScreen extends StatelessWidget {
     final provider = context.read<PhotosProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Фотографии')),
+      appBar: AppBar(
+        title: const Text('Фото объекта'),
+        actions: [
+          StreamBuilder<List<Photo>>(
+            stream: provider.getPhotos(projectId),
+            builder: (context, snapshot) {
+              final count = snapshot.data?.length ?? 0;
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text('$count', style: Theme.of(context).textTheme.titleMedium),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -60,7 +76,7 @@ class PhotosScreen extends StatelessWidget {
             },
           );
         },
-        child: const Icon(Icons.add_a_photo),
+        child: const Icon(Icons.add_a_photo_rounded),
       ),
 
       body: StreamBuilder<List<Photo>>(
@@ -107,15 +123,15 @@ class PhotosScreen extends StatelessWidget {
           }
 
           return GridView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
 
             itemCount: photos.length,
 
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
+              crossAxisSpacing: 10,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.8,
+              childAspectRatio: 0.88,
             ),
 
             itemBuilder: (context, index) {
