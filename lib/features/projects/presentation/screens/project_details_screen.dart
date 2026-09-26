@@ -33,7 +33,6 @@ class ProjectDetailsScreen extends StatefulWidget {
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   late Project _project;
-  late final ClientProvider _clientProvider;
 
   Project get project => _project;
 
@@ -42,13 +41,11 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     super.initState();
 
     _project = widget.project;
-    _clientProvider = ClientProvider();
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
       context.read<TasksProvider>().listenToProjectTasks(_project.id);
-      await _clientProvider.loadClient(_project.id);
+      await context.read<ClientProvider>().loadClient(_project.id);
       await context.read<ProjectFinanceProvider>().load(_project.id);
       context.read<ProjectChangeProvider>().listen(_project.id);
 
@@ -102,12 +99,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Не удалось обновить проект: $e')));
     }
-  }
-
-  @override
-  void dispose() {
-    _clientProvider.dispose();
-    super.dispose();
   }
 
   @override
@@ -658,14 +649,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   Widget _buildClientSection(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _clientProvider,
-      builder: (context, _) {
-        final clientProvider = _clientProvider;
-        final client = clientProvider.clientForProject(project.id);
-        return _buildClientCard(context, clientProvider, client);
-      },
-    );
+    final clientProvider = context.watch<ClientProvider>();
+    final client = clientProvider.clientForProject(project.id);
+
+    return _buildClientCard(context, clientProvider, client);
   }
 
   Widget _buildClientCard(
