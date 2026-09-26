@@ -102,6 +102,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   @override
+  void dispose() {
+    context.read<TasksProvider>().stopListening();
+    context.read<ProjectChangeProvider>().stopListening();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ProjectDetailsAppBar(project: project),
