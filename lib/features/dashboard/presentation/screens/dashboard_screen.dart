@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../ai/presentation/screens/ai_tab_screen.dart';
 import '../../../home/presentation/screens/home_tab_screen.dart';
 import '../../../profile/presentation/screens/profile_tab_screen.dart';
 import '../../../projects/presentation/screens/projects_screen.dart';
@@ -66,6 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }
             },
           ),
+          const AITabScreen(),
           const ProfileTabScreen(),
         ],
       ),
@@ -83,6 +85,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.folder_outlined),
             selectedIcon: const Icon(Icons.folder),
             label: l10n.projects,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome),
+            label: l10n.ai,
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outlined),
