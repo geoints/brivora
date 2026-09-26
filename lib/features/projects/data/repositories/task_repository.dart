@@ -82,6 +82,41 @@ class TaskRepository {
     );
   }
 
+  Future<List<Task>> getTasksForProjects(Iterable<String> projectIds) async {
+    final ids = projectIds.where((id) => id.isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return [];
+
+    final snapshots = await Future.wait(
+      ids.map(
+        (projectId) =>
+            _tasksCollection.where('projectId', isEqualTo: projectId).get(),
+      ),
+    );
+
+    final tasks = <Task>[];
+
+    for (final snapshot in snapshots) {
+      tasks.addAll(
+        snapshot.docs.map((doc) => Task.fromFirestore(doc)),
+      );
+    }
+
+    tasks.sort((a, b) {
+      final aDeadline = a.deadline;
+      final bDeadline = b.deadline;
+
+      if (aDeadline == null && bDeadline == null) {
+        return b.createdAt.compareTo(a.createdAt);
+      }
+      if (aDeadline == null) return 1;
+      if (bDeadline == null) return -1;
+
+      return aDeadline.compareTo(bDeadline);
+    });
+
+    return tasks;
+  }
+
   Future<void> updateTaskStatus(
     String taskId,
     TaskStatus status,
