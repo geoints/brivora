@@ -1072,7 +1072,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final provider = _clientProvider;
+    final provider = context.read<ClientProvider>();
     await provider.deleteClient(project.id);
 
     if (!mounted) return;
