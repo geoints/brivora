@@ -1115,6 +1115,37 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       return const SizedBox.shrink();
     }
 
+    final hasFinanceData =
+        finance.plannedAmount != 0 ||
+        finance.receivedAmount != 0 ||
+        finance.expensesAmount != 0 ||
+        changesProvider.approvedTotal != 0;
+
+    if (!hasFinanceData) {
+      return Card(
+        elevation: 0,
+        color: colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+          leading: const Icon(Icons.payments_outlined),
+          title: const Text('Деньги проекта'),
+          subtitle: const Text(
+            'Добавьте стоимость, полученные деньги и расходы',
+          ),
+          trailing: IconButton(
+            tooltip: 'Добавить',
+            onPressed: provider.isLoading
+                ? null
+                : () => _showFinanceDialog(context, finance),
+            icon: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ),
+      );
+    }
+
     return Card(
       elevation: 0,
       color: colorScheme.surface,
