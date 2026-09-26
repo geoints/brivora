@@ -33,6 +33,8 @@ class ProjectDetailsScreen extends StatefulWidget {
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   late Project _project;
+  late final TasksProvider _tasksProvider;
+  late final ProjectChangeProvider _projectChangeProvider;
 
   Project get project => _project;
 
@@ -44,10 +46,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
-      context.read<TasksProvider>().listenToProjectTasks(_project.id);
+      _tasksProvider.listenToProjectTasks(_project.id);
       await context.read<ClientProvider>().loadClient(_project.id);
       await context.read<ProjectFinanceProvider>().load(_project.id);
-      context.read<ProjectChangeProvider>().listen(_project.id);
+      _projectChangeProvider.listen(_project.id);
 
       try {
         await ProjectRepository().markProjectAsOpened(_project.id);
@@ -103,8 +105,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   @override
   void dispose() {
-    context.read<TasksProvider>().stopListening();
-    context.read<ProjectChangeProvider>().stopListening();
+    _tasksProvider.stopListening();
+    _projectChangeProvider.stopListening();
     super.dispose();
   }
 
