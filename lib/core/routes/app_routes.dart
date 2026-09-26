@@ -17,7 +17,6 @@ import '../../features/calculators/presentation/screens/concrete_calculator_scre
 
 import '../../features/estimates/presentation/screens/estimate_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/subscription/presentation/screens/subscription_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -38,8 +37,6 @@ class AppRoutes {
   static const String concreteCalculator = '/concrete-calculator';
 
   static const String settings = '/settings';
-
-  static const String subscription = '/subscription';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -113,9 +110,6 @@ class AppRoutes {
 
       case AppRoutes.settings:
         return _buildRoute(const SettingsScreen());
-
-      case subscription:
-        return _buildRoute(const SubscriptionScreen());
 
       default:
         return _buildRoute(
