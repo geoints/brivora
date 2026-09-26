@@ -136,6 +136,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               _buildFinanceSection(context),
               const SizedBox(height: 16),
               _buildChangesSection(context),
+              const SizedBox(height: 16),
+              _buildProjectSections(context),
               const SizedBox(height: 20),
               _buildProjectQuickActions(context),
             ],
@@ -149,7 +151,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Основные инструменты', style: Theme.of(context).textTheme.titleMedium),
+        Text('Инструменты', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -407,10 +409,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     final tasks = tasksProvider.tasks;
 
-    final completedCount =
-        tasks.where((task) => task.status == TaskStatus.completed).length;
-    final activeCount = tasks.length - completedCount;
-
     return Card(
       elevation: 0,
       color: Theme.of(context).colorScheme.surface,
@@ -420,29 +418,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Задачи',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                Text(
-                  '${completedCount}/${tasks.length}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            LinearProgressIndicator(
-              value: tasks.isEmpty ? 0 : completedCount / tasks.length,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 12),
+            Text('Задачи', style: Theme.of(context).textTheme.titleMedium),
+
+            const SizedBox(height: 16),
 
             Wrap(
               spacing: 8,
@@ -461,7 +439,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'Пока нет задач. Добавьте первую задачу ниже.',
+                  'Нет задач для этого проекта',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
@@ -652,17 +630,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     if (!mounted) return;
 
     await _reloadProject();
-  }
-
-  Widget _buildClientSection(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _clientProvider,
-      builder: (context, _) {
-        final clientProvider = _clientProvider;
-        final client = clientProvider.clientForProject(project.id);
-        return _buildClientCard(context, clientProvider, client);
-      },
-    );
   }
 
   Widget _buildClientSection(BuildContext context) {
@@ -1387,6 +1354,89 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     }
   }
 
+  Widget _buildProjectSections(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Разделы проекта', style: Theme.of(context).textTheme.titleMedium),
+
+        const SizedBox(height: 12),
+
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.note_alt),
+            title: const Text('Заметки'),
+            subtitle: const Text('Записи и важная информация проекта'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NotesScreen(projectId: project.id),
+                ),
+              );
+            },
+          ),
+        ),
+
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.photo),
+            title: const Text('Фото'),
+            subtitle: const Text('Фото проекта'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+            onTap: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PhotosScreen(projectId: project.id),
+                ),
+              );
+
+              if (!mounted) return;
+
+              if (result == true) {
+                await _reloadProject();
+              }
+            },
+          ),
+        ),
+
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.calculate),
+            title: const Text('Калькуляторы'),
+            subtitle: const Text('Расчёт материалов для проекта'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.calculators,
+                arguments: project,
+              );
+            },
+          ),
+        ),
+
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.receipt_long),
+            title: const Text('Смета'),
+            subtitle: const Text('Материалы, работа и расходы'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.estimate,
+                arguments: project,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// Отдельный экран-диалог создания задачи.
 ///
