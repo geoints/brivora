@@ -26,16 +26,6 @@ class HomeTabScreen extends StatefulWidget {
 class _HomeTabScreenState extends State<HomeTabScreen> {
   final TaskRepository _taskRepository = TaskRepository();
 
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      context.read<ProjectsProvider>();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,21 +158,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
           ),
         ),
 
-        const SizedBox(width: 12),
 
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            Icons.notifications_none_rounded,
-            color: colors.onPrimaryContainer,
-            size: 24,
-          ),
-        ),
       ],
     );
   }
