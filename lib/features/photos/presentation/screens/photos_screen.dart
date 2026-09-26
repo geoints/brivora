@@ -19,20 +19,7 @@ class PhotosScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Фото объекта'),
-        actions: [
-          StreamBuilder<List<Photo>>(
-            stream: provider.getPhotos(projectId),
-            builder: (context, snapshot) {
-              final count = snapshot.data?.length ?? 0;
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Center(
-                  child: Text('$count', style: Theme.of(context).textTheme.titleMedium),
-                ),
-              );
-            },
-          ),
-        ],
+
       ),
 
       floatingActionButton: FloatingActionButton(
