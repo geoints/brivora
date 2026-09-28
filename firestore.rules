@@ -16,108 +16,327 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
     }
 
+    function validTimestamp(value) {
+      return value is timestamp;
+    }
+
+    function validMoney(value) {
+      return value is number && value >= 0 && value <= 1000000000000;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
 
       allow create: if isOwner(userId)
         && request.resource.data.keys().hasOnly([
-          'firstName',
-          'lastName',
-          'role',
-          'companyInfo',
-          'avatarUrl',
-          'updatedAt'
-        ]);
+          'firstName', 'lastName', 'role', 'companyInfo', 'avatarUrl', 'updatedAt'
+        ])
+        && request.resource.data.firstName is string
+        && request.resource.data.lastName is string
+        && request.resource.data.role is string
+        && request.resource.data.companyInfo is string
+        && request.resource.data.avatarUrl is string
+        && validTimestamp(request.resource.data.updatedAt);
 
       allow update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'firstName', 'lastName', 'role', 'companyInfo', 'avatarUrl', 'updatedAt'
+        ])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'firstName',
-          'lastName',
-          'role',
-          'companyInfo',
-          'avatarUrl',
-          'updatedAt'
-        ]);
+          'firstName', 'lastName', 'role', 'companyInfo', 'avatarUrl', 'updatedAt'
+        ])
+        && request.resource.data.firstName is string
+        && request.resource.data.lastName is string
+        && request.resource.data.role is string
+        && request.resource.data.companyInfo is string
+        && request.resource.data.avatarUrl is string
+        && validTimestamp(request.resource.data.updatedAt);
 
       allow delete: if isOwner(userId);
     }
 
     match /projects/{projectId} {
       allow read: if isOwner(resource.data.ownerId);
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'id', 'title', 'description', 'progress', 'status', 'ownerId',
+          'createdAt', 'updatedAt', 'lastOpenedAt', 'members', 'coverImageUrl'
+        ])
+        && request.resource.data.id == projectId
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && request.resource.data.progress is number
+        && request.resource.data.progress >= 0
+        && request.resource.data.progress <= 1
+        && ['active', 'planning', 'completed', 'archived'].hasAny([request.resource.data.status])
+        && request.resource.data.status is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.members is list
+        && (request.resource.data.lastOpenedAt == null || request.resource.data.lastOpenedAt is timestamp)
+        && (request.resource.data.coverImageUrl == null || request.resource.data.coverImageUrl is string);
+
       allow update: if isOwner(resource.data.ownerId)
-        && request.resource.data.ownerId == request.auth.uid;
+        && request.resource.data.keys().hasOnly([
+          'id', 'title', 'description', 'progress', 'status', 'ownerId',
+          'createdAt', 'updatedAt', 'lastOpenedAt', 'members', 'coverImageUrl'
+        ])
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.id == projectId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && request.resource.data.progress is number
+        && request.resource.data.progress >= 0
+        && request.resource.data.progress <= 1
+        && ['active', 'planning', 'completed', 'archived'].hasAny([request.resource.data.status])
+        && request.resource.data.status is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.members is list
+        && (request.resource.data.lastOpenedAt == null || request.resource.data.lastOpenedAt is timestamp)
+        && (request.resource.data.coverImageUrl == null || request.resource.data.coverImageUrl is string);
+
       allow delete: if isOwner(resource.data.ownerId);
     }
 
     match /tasks/{taskId} {
       allow read: if ownsProject(resource.data.projectId);
-      allow create: if ownsProject(request.resource.data.projectId);
+
+      allow create: if ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'title', 'description', 'status', 'priority',
+          'createdAt', 'deadline', 'completedAt'
+        ])
+        && request.resource.data.projectId is string
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && ['active', 'inProgress', 'completed'].hasAny([request.resource.data.status])
+        && ['low', 'normal', 'high'].hasAny([request.resource.data.priority])
+        && request.resource.data.createdAt is timestamp
+        && (request.resource.data.deadline == null || request.resource.data.deadline is timestamp)
+        && (request.resource.data.completedAt == null || request.resource.data.completedAt is timestamp);
+
       allow update: if ownsProject(resource.data.projectId)
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'title', 'description', 'status', 'priority',
+          'createdAt', 'deadline', 'completedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && ['active', 'inProgress', 'completed'].hasAny([request.resource.data.status])
+        && ['low', 'normal', 'high'].hasAny([request.resource.data.priority])
+        && request.resource.data.createdAt is timestamp
+        && (request.resource.data.deadline == null || request.resource.data.deadline is timestamp)
+        && (request.resource.data.completedAt == null || request.resource.data.completedAt is timestamp);
+
       allow delete: if ownsProject(resource.data.projectId);
     }
 
     match /estimates/{estimateId} {
       allow read: if isOwner(resource.data.ownerId);
+
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'name', 'category', 'quantity', 'unit', 'unitPrice',
+          'totalPrice', 'comment', 'createdAt', 'updatedAt', 'ownerId'
+        ])
         && request.resource.data.ownerId == request.auth.uid
-        && ownsProject(request.resource.data.projectId);
+        && ownsProject(request.resource.data.projectId)
+        && request.resource.data.projectId is string
+        && request.resource.data.name is string
+        && request.resource.data.category is string
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 0
+        && request.resource.data.unit is string
+        && request.resource.data.unitPrice is number
+        && request.resource.data.unitPrice >= 0
+        && request.resource.data.totalPrice is number
+        && request.resource.data.totalPrice >= 0
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
       allow update: if isOwner(resource.data.ownerId)
-        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.projectId == resource.data.projectId
-        && ownsProject(resource.data.projectId);
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'name', 'category', 'quantity', 'unit', 'unitPrice',
+          'totalPrice', 'comment', 'createdAt', 'updatedAt', 'ownerId'
+        ])
+        && ownsProject(resource.data.projectId)
+        && request.resource.data.name is string
+        && request.resource.data.category is string
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 0
+        && request.resource.data.unit is string
+        && request.resource.data.unitPrice is number
+        && request.resource.data.unitPrice >= 0
+        && request.resource.data.totalPrice is number
+        && request.resource.data.totalPrice >= 0
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
       allow delete: if isOwner(resource.data.ownerId);
     }
 
     match /notes/{noteId} {
       allow read: if isOwner(resource.data.ownerId);
+
       allow create: if isOwner(request.resource.data.ownerId)
-        && ownsProject(request.resource.data.projectId);
-      allow update: if isOwner(resource.data.ownerId)
+        && ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'title', 'content', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.projectId is string
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.title is string
+        && request.resource.data.content is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
+      allow update: if isOwner(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'title', 'content', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.content is string
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
       allow delete: if isOwner(resource.data.ownerId);
     }
 
     match /photos/{photoId} {
       allow read: if isOwner(resource.data.ownerId);
+
       allow create: if isOwner(request.resource.data.ownerId)
-        && ownsProject(request.resource.data.projectId);
-      allow update: if isOwner(resource.data.ownerId)
+        && ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'imageUrl', 'fileName', 'createdAt', 'caption'
+        ])
+        && request.resource.data.projectId is string
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.imageUrl is string
+        && request.resource.data.fileName is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.caption is string;
+
+      allow update: if isOwner(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'imageUrl', 'fileName', 'createdAt', 'caption'
+        ])
+        && request.resource.data.imageUrl is string
+        && request.resource.data.fileName is string
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.caption is string;
+
       allow delete: if isOwner(resource.data.ownerId);
     }
 
     match /clients/{clientId} {
-      // Legacy documents may use an auto-generated id. New documents use
-      // the project id as their document id.
       allow read: if ownsProject(resource.data.projectId);
-      allow create: if ownsProject(request.resource.data.projectId);
+
+      allow create: if ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'name', 'phone', 'email', 'comment', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.projectId == clientId
+        && request.resource.data.name is string
+        && request.resource.data.phone is string
+        && request.resource.data.email is string
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
       allow update: if ownsProject(resource.data.projectId)
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'name', 'phone', 'email', 'comment', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.phone is string
+        && request.resource.data.email is string
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
       allow delete: if ownsProject(resource.data.projectId);
     }
 
     match /project_finances/{financeId} {
       allow read: if ownsProject(resource.data.projectId);
-      allow create: if ownsProject(request.resource.data.projectId);
+
+      allow create: if ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'plannedAmount', 'receivedAmount', 'expensesAmount',
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.projectId is string
+        && validMoney(request.resource.data.plannedAmount)
+        && validMoney(request.resource.data.receivedAmount)
+        && validMoney(request.resource.data.expensesAmount)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
       allow update: if ownsProject(resource.data.projectId)
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'plannedAmount', 'receivedAmount', 'expensesAmount',
+          'createdAt', 'updatedAt'
+        ])
+        && validMoney(request.resource.data.plannedAmount)
+        && validMoney(request.resource.data.receivedAmount)
+        && validMoney(request.resource.data.expensesAmount)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
       allow delete: if ownsProject(resource.data.projectId);
     }
 
     match /project_changes/{changeId} {
       allow read: if ownsProject(resource.data.projectId);
-      allow create: if ownsProject(request.resource.data.projectId);
+
+      allow create: if ownsProject(request.resource.data.projectId)
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'title', 'amount', 'status', 'comment', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.projectId is string
+        && request.resource.data.title is string
+        && validMoney(request.resource.data.amount)
+        && ['waiting', 'approved', 'rejected'].hasAny([request.resource.data.status])
+        && request.resource.data.status is string
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+
       allow update: if ownsProject(resource.data.projectId)
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'title', 'amount', 'status', 'comment', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.title is string
+        && validMoney(request.resource.data.amount)
+        && ['waiting', 'approved', 'rejected'].hasAny([request.resource.data.status])
+        && request.resource.data.status is string
+        && request.resource.data.comment is string
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
       allow delete: if ownsProject(resource.data.projectId);
     }
 
-    // Payment orders and subscription state are server-managed.
-    // Clients must use authenticated callable Cloud Functions.
+    // Reserved for server-managed payment/subscription state.
+    // Client-side access stays completely blocked until the payment flow is implemented.
     match /paymentOrders/{orderId} {
       allow read, write: if false;
     }
