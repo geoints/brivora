@@ -11,23 +11,29 @@ service firebase.storage {
         && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
     }
 
+    function isOwner(userId) {
+      return signedIn() && userId == request.auth.uid;
+    }
+
+    function validImageUpload(maxBytes) {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= maxBytes
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
     match /users/{userId}/{allPaths=**} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId)
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        && validImageUpload(5 * 1024 * 1024);
       allow delete: if isOwner(userId);
-
-      function isOwner(id) {
-        return signedIn() && id == request.auth.uid;
-      }
     }
 
     match /projects/{projectId}/photos/{fileName} {
       allow read: if ownsProject(projectId);
       allow write: if ownsProject(projectId)
-        && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        && validImageUpload(10 * 1024 * 1024);
       allow delete: if ownsProject(projectId);
     }
 
