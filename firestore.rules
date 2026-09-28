@@ -35,7 +35,7 @@ service cloud.firestore {
         && request.resource.data.lastName is string
         && request.resource.data.role is string
         && request.resource.data.companyInfo is string
-        && request.resource.data.avatarUrl is string
+        && (request.resource.data.avatarUrl == null || request.resource.data.avatarUrl is string)
         && validTimestamp(request.resource.data.updatedAt);
 
       allow update: if isOwner(userId)
