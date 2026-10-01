@@ -2,45 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:brivora/features/projects/domain/models/project.dart';
+import 'package:brivora/features/projects/domain/models/task.dart';
 import 'package:brivora/features/projects/presentation/providers/tasks_provider.dart';
-import 'package:brivora/features/projects/presentation/screens/project_details_screen.dart';
+import 'package:brivora/features/projects/presentation/widgets/create_task_dialog.dart';
 
 class FakeTasksProvider extends TasksProvider {
   @override
   void listenToProjectTasks(String projectId) {}
+
+  @override
+  Future<Task> createTask(Task task) async => task;
 }
 
 void main() {
   testWidgets('Save button becomes enabled after entering a task title', (
     tester,
   ) async {
-    final project = Project(
-      id: 'project-1',
-      title: 'Test project',
-      ownerId: 'user-1',
-      createdAt: DateTime.now(),
-    );
-
     await tester.pumpWidget(
-      ChangeNotifierProvider<TasksProvider>(
-        create: (_) => FakeTasksProvider(),
-        child: MaterialApp(home: ProjectDetailsScreen(project: project)),
+      MaterialApp(
+        home: ChangeNotifierProvider<TasksProvider>(
+          create: (_) => FakeTasksProvider(),
+          child: const Scaffold(
+            body: CreateTaskDialog(projectId: 'project-1'),
+          ),
+        ),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
-
-    final saveButton = find.widgetWithText(ElevatedButton, 'Сохранить');
+    final saveButton = find.widgetWithText(FilledButton, 'Сохранить');
     expect(saveButton, findsOneWidget);
-    expect(tester.widget<ElevatedButton>(saveButton).onPressed, isNull);
+    expect(tester.widget<FilledButton>(saveButton).onPressed, isNull);
 
     await tester.enterText(find.byType(TextField).first, 'Новая задача');
     await tester.pump();
 
-    expect(tester.widget<ElevatedButton>(saveButton).onPressed, isNotNull);
+    expect(tester.widget<FilledButton>(saveButton).onPressed, isNotNull);
   });
 }
