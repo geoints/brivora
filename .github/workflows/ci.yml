@@ -32,6 +32,8 @@ jobs:
         run: flutter test
       - name: Build Android debug APK
         run: flutter build apk --debug
+      - name: Build Android release APK
+        run: flutter build apk --release
 
   firebase-rules:
     runs-on: ubuntu-latest
@@ -47,3 +49,8 @@ jobs:
         run: npm install --global firebase-tools
       - name: Validate Firebase configuration
         run: firebase --version
+      - name: Validate Cloud Functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build
