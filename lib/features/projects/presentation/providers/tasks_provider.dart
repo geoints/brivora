@@ -8,8 +8,19 @@ import '../../domain/models/project.dart';
 import '../../domain/models/task.dart';
 
 class TasksProvider extends ChangeNotifier {
-  final TaskRepository repository = TaskRepository();
-  final ProjectRepository projectRepository = ProjectRepository();
+  TaskRepository? _repository;
+  ProjectRepository? _projectRepository;
+
+  TasksProvider({
+    TaskRepository? repository,
+    ProjectRepository? projectRepository,
+  }) : _repository = repository,
+       _projectRepository = projectRepository;
+
+  TaskRepository get repository => _repository ??= TaskRepository();
+
+  ProjectRepository get projectRepository =>
+      _projectRepository ??= ProjectRepository();
 
   StreamSubscription<List<Task>>? _subscription;
 
