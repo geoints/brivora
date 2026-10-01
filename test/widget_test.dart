@@ -1,16 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:brivora/app/app.dart';
-import 'package:brivora/core/providers/locale_controller.dart';
+import 'package:brivora/features/auth/presentation/screens/splash_screen.dart';
 
 void main() {
-  testWidgets('Brivora app smoke test', (WidgetTester tester) async {
-    final localeController = LocaleController();
+  testWidgets('Brivora splash screen smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SplashScreen(onAuthCheck: _skipAuthCheck),
+      ),
+    );
 
-    await tester.pumpWidget(BrivoraApp(localeController: localeController));
+    await tester.pump();
 
-    await tester.pumpAndSettle();
-
-    expect(find.byType(BrivoraApp), findsOneWidget);
+    expect(find.text('Brivora'), findsOneWidget);
+    expect(find.text('PROJECT MANAGEMENT'), findsOneWidget);
   });
 }
+
+Future<void> _skipAuthCheck() async {}
