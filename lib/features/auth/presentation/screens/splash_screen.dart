@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.onAuthCheck});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -60,6 +60,11 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _checkAuthAndNavigate() async {
     if (!mounted) return;
+
+    if (widget.onAuthCheck != null) {
+      await widget.onAuthCheck!();
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
 
