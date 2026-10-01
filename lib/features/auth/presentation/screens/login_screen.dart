@@ -32,6 +32,32 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty || !RegExp(r'^[^@]+@[^@]+\\.[^@]+').hasMatch(email)) {
+      setState(() {
+        _errorMessage = 'Введите корректный email для восстановления пароля.';
+      });
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Письмо для восстановления пароля отправлено.'),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = _getErrorMessage(e.code);
+      });
+    }
+  }
+
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -73,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
       case 'user-disabled':
         return 'Пользователь заблокирован';
       default:
-        return 'Ошибка при входе. Попробуйте позже.';
+        return 'Не удалось выполнить операцию. Попробуйте позже.';
     }
   }
 
@@ -146,9 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          // TODO: Реализовать восстановление пароля
-                        },
+                        onPressed: _resetPassword,
                         child: const Text('Забыли пароль?'),
                       ),
                     ),
