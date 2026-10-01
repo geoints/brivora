@@ -7,7 +7,8 @@
 - [ ] dart format --output=none --set-exit-if-changed lib test
 - [ ] flutter analyze
 - [ ] flutter test
-- [ ] flutter build apk --debug
+- [ ] flutter build apk --release
+- [ ] flutter build appbundle --release
 - [ ] Manual smoke test on a real Android phone
 
 ### Critical smoke-test path
@@ -35,10 +36,12 @@
 - [ ] Verify arbitrary Firestore collections are denied.
 - [ ] Verify Storage uploads are limited to authenticated owners and image MIME types.
 - [ ] Verify Storage upload limits: 5 MB for avatars and 10 MB for project photos.
-- [ ] Keep payment/subscription collections server-managed until payments are implemented.
+- [x] AI is intentionally disabled behind a release placeholder.
+- [x] In-app payments and subscriptions are removed from the release build.
+- [ ] Verify Firebase project settings and production authentication configuration.
 
 ### Android release signing
-The repository currently uses the debug signing key for the release build type. Do not publish an APK/AAB built with that configuration.
+The release build is only publishable after a private production/upload keystore is configured. Never publish an artifact signed with the debug key.
 1. Create a private Android upload/release keystore.
 2. Keep the keystore and key.properties outside Git.
 3. Configure the release signing config in android/app/build.gradle.kts.
@@ -52,7 +55,5 @@ Run from the repository root after confirming the Firebase project:
 - firebase deploy --only functions only when server-side functions are intentionally being deployed.
 
 ## Intentionally deferred
-- AI features
-- In-app payments/subscriptions
-
-These are deliberately excluded from the current release scope.
+- AI features — visible as a placeholder and planned for a later update.
+- In-app payments/subscriptions — completely removed from the current release scope.
