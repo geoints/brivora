@@ -5,6 +5,10 @@ const TELEGRAM_BOT_TOKEN = defineSecret("TELEGRAM_BOT_TOKEN");
 
 const TELEGRAM_API = "https://api.telegram.org";
 
+// Set this after the bot reports the file_id for the released APK.
+const BRIVORA_APK_FILE_ID = "";
+
+
 interface TelegramUpdate {
   update_id: number;
   message?: TelegramMessage;
@@ -17,6 +21,15 @@ interface TelegramMessage {
     id: number;
   };
   text?: string;
+  document?: TelegramDocument;
+}
+
+interface TelegramDocument {
+  file_id: string;
+  file_unique_id: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
 }
 
 interface TelegramCallbackQuery {
@@ -164,13 +177,10 @@ const FAQ_ITEMS: Record<string, FaqItem> = {
   },
 
   faq_download: {
-    question: "📱 Где скачать приложение?",
+    question: "📱 Скачать Brivora",
     answer:
-      "📱 Brivora развивается как мобильное приложение.\n\n" +
-      "На текущем этапе основная версия доступна для Android.\n\n" +
-      "Следите за официальными каналами Brivora, чтобы " +
-      "получать информацию о новых версиях и выходе приложения " +
-      "на других платформах.",
+      "Нажмите кнопку «📱 Скачать Brivora» в главном меню, " +
+      "чтобы получить актуальную Android-версию приложения.",
   },
 };
 
@@ -300,6 +310,40 @@ async function sendMessage(
 }
 
 /**
+ * Отправляет APK-документ пользователю Telegram по file_id.
+ *
+ * @param {string} token Telegram bot token.
+ * @param {number} chatId Telegram chat ID.
+ * @param {string} fileId Telegram file_id.
+ * @return {Promise<TelegramResponse>} Telegram API response.
+ */
+async function sendDocument(
+  token: string,
+  chatId: number,
+  fileId: string,
+): Promise<TelegramResponse> {
+  const response = await fetch(
+    `${TELEGRAM_API}/bot${token}/sendDocument`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        document: fileId,
+        caption:
+          "📱 Brivora для Android\\n\\n" +
+          "Установите приложение и начните управлять проектами, " +
+          "сметами, задачами и фотографиями в одном месте.",
+      }),
+    },
+  );
+
+  return (await response.json()) as TelegramResponse;
+}
+
+/**
  * Отвечает на callback query Telegram.
  *
  * @param {string} token Telegram bot token.
@@ -380,6 +424,23 @@ async function handleMessage(
   message: TelegramMessage,
 ): Promise<void> {
   const chatId = message.chat.id;
+
+  if (message.document) {
+    const document = message.document;
+    const fileName = document.file_name ?? "Brivora.apk";
+
+    await sendMessage(
+      token,
+      chatId,
+      "📦 APK получен.\\n\\n" +
+        `Файл: ${fileName}\\n` +
+        `Размер: ${document.file_size ? Math.round(document.file_size / 1024 / 1024) + " MB" : "неизвестен"}\\n\\n` +
+        "🔑 file_id для подключения кнопки «📱 Скачать Brivora»:\\n\\n" +
+        document.file_id,
+    );
+    return;
+  }
+
   const text = message.text?.trim().toLowerCase() ?? "";
 
   if (text === "/start" || text === "/help") {
@@ -445,6 +506,38 @@ async function handleCallback(
       getWelcomeMessage(),
       createMainKeyboard(),
     );
+    return;
+  }
+
+  if (data === "faq_download") {
+    if (!BRIVORA_APK_FILE_ID) {
+      await sendMessage(
+        token,
+        chatId,
+        "📱 Brivora для Android\\n\\n" +
+          "Скачать приложение можно будет после публикации актуальной версии.\\n\\n" +
+          "Следите за официальным каналом Brivora.",
+        {
+          inline_keyboard: [
+            [
+              {
+                text: "📢 Канал Brivora",
+                url: "https://t.me/brivora_app",
+              },
+            ],
+            [
+              {
+                text: "⬅️ Главное меню",
+                callback_data: "main_menu",
+              },
+            ],
+          ],
+        },
+      );
+      return;
+    }
+
+    await sendDocument(token, chatId, BRIVORA_APK_FILE_ID);
     return;
   }
 
