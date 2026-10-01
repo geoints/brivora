@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
+  final Future<void> Function()? onAuthCheck;
+
   const SplashScreen({super.key, this.onAuthCheck});
 
   @override
