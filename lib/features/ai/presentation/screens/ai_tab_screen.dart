@@ -12,6 +12,7 @@ class AITabScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final isKazakh = Localizations.localeOf(context).languageCode == 'kk';
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -48,7 +49,9 @@ class AITabScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Функция AI пока находится в разработке.',
+                    isKazakh
+                        ? 'AI функциясы әзірленуде.'
+                        : 'Функция AI пока находится в разработке.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colors.onSurfaceVariant,
@@ -57,9 +60,13 @@ class AITabScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Мы добавим AI-помощника в следующих обновлениях Brivora. '
-                    'Сейчас доступны все основные инструменты для управления '
-                    'ремонтом, задачами, сметами и финансами.',
+                    isKazakh
+                        ? 'AI көмекшісін Brivora-ның келесі жаңартуларында қосамыз. '
+                          'Қазір жөндеу жұмыстарын, тапсырмаларды, сметаларды және '
+                          'қаржыны басқаруға арналған негізгі құралдардың барлығы қолжетімді.'
+                        : 'Мы добавим AI-помощника в следующих обновлениях Brivora. '
+                          'Сейчас доступны все основные инструменты для управления '
+                          'ремонтом, задачами, сметами и финансами.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
@@ -86,7 +93,9 @@ class AITabScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'AI появится в следующих обновлениях.',
+                            isKazakh
+                                ? 'AI келесі жаңартуларда пайда болады.'
+                                : 'AI появится в следующих обновлениях.',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
