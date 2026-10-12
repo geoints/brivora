@@ -335,6 +335,51 @@ service cloud.firestore {
       allow delete: if ownsProject(resource.data.projectId);
     }
 
+    match /payment_receipts/{receiptId} {
+      allow read: if ownsProject(resource.data.projectId);
+
+      allow create: if signedIn()
+        && ownsProject(request.resource.data.projectId)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'fileName', 'filePath', 'contentType',
+          'sizeBytes', 'paidAt', 'createdAt', 'amount', 'bank', 'comment'
+        ])
+        && request.resource.data.projectId is string
+        && request.resource.data.fileName is string
+        && request.resource.data.filePath is string
+        && request.resource.data.filePath.matches('projects/' + request.resource.data.projectId + '/receipts/.*')
+        && ['application/pdf', 'image/jpeg', 'image/png'].hasAny([request.resource.data.contentType])
+        && request.resource.data.sizeBytes is int
+        && request.resource.data.sizeBytes > 0
+        && request.resource.data.sizeBytes <= 15728640
+        && request.resource.data.paidAt is timestamp
+        && request.resource.data.createdAt is timestamp
+        && (request.resource.data.amount == null || validMoney(request.resource.data.amount))
+        && request.resource.data.bank is string
+        && request.resource.data.comment is string;
+
+      allow update: if ownsProject(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.keys().hasOnly([
+          'projectId', 'ownerId', 'fileName', 'filePath', 'contentType',
+          'sizeBytes', 'paidAt', 'createdAt', 'amount', 'bank', 'comment'
+        ])
+        && request.resource.data.fileName == resource.data.fileName
+        && request.resource.data.filePath == resource.data.filePath
+        && request.resource.data.contentType == resource.data.contentType
+        && request.resource.data.sizeBytes == resource.data.sizeBytes
+        && request.resource.data.paidAt is timestamp
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (request.resource.data.amount == null || validMoney(request.resource.data.amount))
+        && request.resource.data.bank is string
+        && request.resource.data.comment is string;
+
+      allow delete: if ownsProject(resource.data.projectId)
+        && resource.data.ownerId == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
