@@ -19,6 +19,7 @@ import '../widgets/create_task_dialog.dart';
 
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../../../photos/presentation/screens/photos_screen.dart';
+import '../../../receipts/presentation/screens/receipts_screen.dart';
 
 import '../../../../core/routes/app_routes.dart';
 
@@ -137,6 +138,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               _buildClientSection(context),
               const SizedBox(height: 16),
               _buildFinanceSection(context),
+              const SizedBox(height: 12),
+              _buildReceiptsSection(context),
               const SizedBox(height: 16),
               _buildChangesSection(context),
               const SizedBox(height: 20),
@@ -1286,6 +1289,47 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   double _parseMoney(String value) {
     return double.tryParse(value.replaceAll(' ', '').replaceAll(',', '.')) ?? 0;
+  }
+
+  Widget _buildReceiptsSection(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      color: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.receipt_long_outlined,
+            color: colors.onPrimaryContainer,
+          ),
+        ),
+        title: Text(
+          'Чеки и оплаты',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        subtitle: Text(
+          'Подтверждения переводов по этому объекту',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceiptsScreen(projectId: project.id),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildChangesSection(BuildContext context) {
