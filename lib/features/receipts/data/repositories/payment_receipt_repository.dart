@@ -114,12 +114,12 @@ class PaymentReceiptRepository {
       throw StateError('Недостаточно прав для удаления чека.');
     }
 
-    await _collection.doc(receipt.id).delete();
     try {
       await _storage.ref().child(receipt.filePath).delete();
     } on FirebaseException catch (error) {
-      // A missing object must not leave a stale Firestore entry.
+      // If the file is already gone, the metadata can still be cleaned up.
       if (error.code != 'object-not-found') rethrow;
     }
+    await _collection.doc(receipt.id).delete();
   }
 }
