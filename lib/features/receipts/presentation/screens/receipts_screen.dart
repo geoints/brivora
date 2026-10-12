@@ -78,125 +78,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     }
   }
 
-  Future<_ReceiptDetails?> _showReceiptDetailsDialog() async {
-    final amountController = TextEditingController();
-    final bankController = TextEditingController();
-    final commentController = TextEditingController();
-    DateTime paidAt = DateTime.now();
-
-    try {
-      return await showDialog<_ReceiptDetails>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Данные об оплате'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Сумма (₸), необязательно',
-                      prefixIcon: Icon(Icons.payments_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: bankController,
-                    decoration: const InputDecoration(
-                      labelText: 'Банк, необязательно',
-                      hintText: 'Kaspi, Halyk…',
-                      prefixIcon: Icon(Icons.account_balance_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('Дата оплаты'),
-                    subtitle: Text(DateFormat(_dateFormat).format(paidAt)),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: dialogContext,
-                        initialDate: paidAt,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now().add(
-                          const Duration(days: 1),
-                        ),
-                      );
-                      if (picked != null) {
-                        setDialogState(() => paidAt = picked);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: commentController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Назначение / комментарий',
-                      hintText: 'Например, аванс за ремонт',
-                      alignLabelWithHint: true,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'PDF, JPG или PNG · до 15 МБ',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Отмена'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final rawAmount = amountController.text.trim().replaceAll(
-                    ' ',
-                    '',
-                  ).replaceAll(',', '.');
-                  final amount = rawAmount.isEmpty
-                      ? null
-                      : double.tryParse(rawAmount);
-                  if (rawAmount.isNotEmpty &&
-                      (amount == null || amount < 0 || amount > 1000000000000)) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      const SnackBar(
-                        content: Text('Введите корректную сумму оплаты.'),
-                      ),
-                    );
-                    return;
-                  }
-                  Navigator.pop(
-                    dialogContext,
-                    _ReceiptDetails(
-                      amount: amount,
-                      bank: bankController.text,
-                      comment: commentController.text,
-                      paidAt: paidAt,
-                    ),
-                  );
-                },
-                child: const Text('Продолжить'),
-              ),
-            ],
-          ),
-        ),
-      );
-    } finally {
-      amountController.dispose();
-      bankController.dispose();
-      commentController.dispose();
-    }
+  Future<_ReceiptDetails?> _showReceiptDetailsDialog() {
+    return showDialog<_ReceiptDetails>(
+      context: context,
+      builder: (_) => const _ReceiptDetailsDialog(),
+    );
   }
 
   Future<void> _openReceipt(PaymentReceipt receipt) async {
@@ -420,6 +306,129 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+
+class _ReceiptDetailsDialog extends StatefulWidget {
+  const _ReceiptDetailsDialog();
+
+  @override
+  State<_ReceiptDetailsDialog> createState() => _ReceiptDetailsDialogState();
+}
+
+class _ReceiptDetailsDialogState extends State<_ReceiptDetailsDialog> {
+  final _amountController = TextEditingController();
+  final _bankController = TextEditingController();
+  final _commentController = TextEditingController();
+  DateTime _paidAt = DateTime.now();
+
+  static const _dateFormat = 'dd.MM.yyyy';
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _bankController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  void _continue() {
+    final rawAmount = _amountController.text.trim().replaceAll(' ', '').replaceAll(',', '.');
+    final amount = rawAmount.isEmpty ? null : double.tryParse(rawAmount);
+    if (rawAmount.isNotEmpty &&
+        (amount == null || amount < 0 || amount > 1000000000000)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите корректную сумму оплаты.')),
+      );
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      _ReceiptDetails(
+        amount: amount,
+        bank: _bankController.text,
+        comment: _commentController.text,
+        paidAt: _paidAt,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Данные об оплате'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Сумма (₸), необязательно',
+                prefixIcon: Icon(Icons.payments_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bankController,
+              decoration: const InputDecoration(
+                labelText: 'Банк, необязательно',
+                hintText: 'Kaspi, Halyk…',
+                prefixIcon: Icon(Icons.account_balance_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.calendar_today_outlined),
+              title: const Text('Дата оплаты'),
+              subtitle: Text(DateFormat(_dateFormat).format(_paidAt)),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _paidAt,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now().add(const Duration(days: 1)),
+                );
+                if (picked != null && mounted) {
+                  setState(() => _paidAt = picked);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _commentController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Назначение / комментарий',
+                hintText: 'Например, аванс за ремонт',
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'PDF, JPG или PNG · до 15 МБ',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _continue,
+          child: const Text('Продолжить'),
+        ),
+      ],
     );
   }
 }
