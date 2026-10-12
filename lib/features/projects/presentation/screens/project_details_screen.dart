@@ -63,6 +63,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     });
   }
 
+  double _parseMoney(String value) {
+    return double.tryParse(
+          value.replaceAll(' ', '').replaceAll(',', '.'),
+        ) ??
+        0;
+  }
+
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.'
         '${date.month.toString().padLeft(2, '0')}.'
