@@ -336,7 +336,8 @@ service cloud.firestore {
     }
 
     match /payment_receipts/{receiptId} {
-      allow read: if ownsProject(resource.data.projectId);
+      allow read: if ownsProject(resource.data.projectId)
+        && resource.data.ownerId == request.auth.uid;
 
       allow create: if signedIn()
         && ownsProject(request.resource.data.projectId)
