@@ -23,6 +23,14 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
+    function validReceiptUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 15 * 1024 * 1024
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('(application/pdf|image/(jpeg|png))');
+    }
+
     match /users/{userId}/{allPaths=**} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId)
@@ -34,6 +42,12 @@ service firebase.storage {
       allow read: if ownsProject(projectId);
       allow write: if ownsProject(projectId)
         && validImageUpload(10 * 1024 * 1024);
+      allow delete: if ownsProject(projectId);
+    }
+
+    match /projects/{projectId}/receipts/{fileName} {
+      allow read: if ownsProject(projectId);
+      allow write: if ownsProject(projectId) && validReceiptUpload();
       allow delete: if ownsProject(projectId);
     }
 

@@ -19,6 +19,7 @@ import '../widgets/create_task_dialog.dart';
 
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../../../photos/presentation/screens/photos_screen.dart';
+import '../../../receipts/presentation/screens/receipts_screen.dart';
 
 import '../../../../core/routes/app_routes.dart';
 
@@ -60,6 +61,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         debugPrint('MARK PROJECT AS OPENED ERROR: $e');
       }
     });
+  }
+
+  double _parseMoney(String value) {
+    return double.tryParse(
+          value.replaceAll(' ', '').replaceAll(',', '.'),
+        ) ??
+        0;
   }
 
   String _formatDate(DateTime date) {
@@ -137,6 +145,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               _buildClientSection(context),
               const SizedBox(height: 16),
               _buildFinanceSection(context),
+              const SizedBox(height: 12),
+              _buildReceiptsSection(context),
               const SizedBox(height: 16),
               _buildChangesSection(context),
               const SizedBox(height: 20),
@@ -1211,81 +1221,55 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     BuildContext context,
     ProjectFinance finance,
   ) async {
-    final planned = TextEditingController(text: finance.plannedAmount.round().toString());
-    final received = TextEditingController(text: finance.receivedAmount.round().toString());
-    final expenses = TextEditingController(text: finance.expensesAmount.round().toString());
-    final formKey = GlobalKey<FormState>();
-
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Деньги проекта'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _moneyField(planned, 'Плановая стоимость'),
-                  const SizedBox(height: 12),
-                  _moneyField(received, 'Получено'),
-                  const SizedBox(height: 12),
-                  _moneyField(expenses, 'Расходы'),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                final provider = this.context.read<ProjectFinanceProvider>();
-                await provider.save(
-                  projectId: project.id,
-                  plannedAmount: _parseMoney(planned.text),
-                  receivedAmount: _parseMoney(received.text),
-                  expensesAmount: _parseMoney(expenses.text),
-                );
-                if (!mounted) return;
-                if (provider.error != null) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('Не удалось сохранить финансы: ${provider.error}')),
-                  );
-                  return;
-                }
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Сохранить'),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      planned.dispose();
-      received.dispose();
-      expenses.dispose();
-    }
-  }
-
-  TextFormField _moneyField(TextEditingController controller, String label) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(labelText: label, suffixText: '₸'),
-      validator: (value) {
-        if (_parseMoney(value ?? '') < 0) return 'Сумма не может быть отрицательной';
-        return null;
-      },
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _FinanceDialog(
+        projectId: project.id,
+        finance: finance,
+      ),
     );
   }
 
-  double _parseMoney(String value) {
-    return double.tryParse(value.replaceAll(' ', '').replaceAll(',', '.')) ?? 0;
+
+  Widget _buildReceiptsSection(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      color: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.receipt_long_outlined,
+            color: colors.onPrimaryContainer,
+          ),
+        ),
+        title: Text(
+          'Чеки и оплаты',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        subtitle: Text(
+          'Подтверждения переводов по этому объекту',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceiptsScreen(projectId: project.id),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildChangesSection(BuildContext context) {
@@ -1406,5 +1390,140 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       amount.dispose();
       comment.dispose();
     }
+  }
+}
+
+class _FinanceDialog extends StatefulWidget {
+  const _FinanceDialog({
+    required this.projectId,
+    required this.finance,
+  });
+
+  final String projectId;
+  final ProjectFinance finance;
+
+  @override
+  State<_FinanceDialog> createState() => _FinanceDialogState();
+}
+
+class _FinanceDialogState extends State<_FinanceDialog> {
+  late final TextEditingController _planned;
+  late final TextEditingController _received;
+  late final TextEditingController _expenses;
+  final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _planned = TextEditingController(
+      text: widget.finance.plannedAmount.round().toString(),
+    );
+    _received = TextEditingController(
+      text: widget.finance.receivedAmount.round().toString(),
+    );
+    _expenses = TextEditingController(
+      text: widget.finance.expensesAmount.round().toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _planned.dispose();
+    _received.dispose();
+    _expenses.dispose();
+    super.dispose();
+  }
+
+  double _parseMoney(String value) {
+    return double.tryParse(value.replaceAll(' ', '').replaceAll(',', '.')) ??
+        0;
+  }
+
+  TextFormField _moneyField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label, suffixText: '₸'),
+      validator: (value) {
+        if (_parseMoney(value ?? '') < 0) {
+          return 'Сумма не может быть отрицательной';
+        }
+        return null;
+      },
+    );
+  }
+
+  Future<void> _save() async {
+    if (_isSaving || !_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+    final provider = context.read<ProjectFinanceProvider>();
+
+    try {
+      await provider.save(
+        projectId: widget.projectId,
+        plannedAmount: _parseMoney(_planned.text),
+        receivedAmount: _parseMoney(_received.text),
+        expensesAmount: _parseMoney(_expenses.text),
+      );
+
+      if (!mounted) return;
+
+      if (provider.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Не удалось сохранить финансы: ${provider.error}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      Navigator.of(context).pop();
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Деньги проекта'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _moneyField(_planned, 'Плановая стоимость'),
+              const SizedBox(height: 12),
+              _moneyField(_received, 'Получено'),
+              const SizedBox(height: 12),
+              _moneyField(_expenses, 'Расходы'),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Сохранить'),
+        ),
+      ],
+    );
   }
 }
